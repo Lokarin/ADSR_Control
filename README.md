@@ -12,7 +12,9 @@ O objetivo é fazer o controle dos parâmentros Attack, Hold, Decay, Sustain e R
 de uma interface intúitiva em um computador.
 
 Mais além, alguns objetivos secundários do projeto são:
+
 1 - Denvolvimento de um VCA (Voltage Controlled Amplfier), que será controlado pelo AHDSR.
+
 2 - Geração e controle de uma onda senoidal fornecida para o VCA. O controle de freqência - pitch - da onda será realizado através de 
 um sensor de distância.
 
