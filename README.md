@@ -8,7 +8,7 @@ através de sinais de tensão, sinais estes que no caso do AHDSR podem ser envel
 geometria - diferente, que como resultado pode ser utilizado de inúmeras formas diferentes para se obter sinais de tensão que podem 
 ser utilizados para fazer o controle de outros módulos com o intúito de gerar sons diferentes.
 
-O objetivo é fazer o conrole dos parâmentros Attack, Hold, Decay, Sustain e Release deste AHDSR de forma completamente digital, através 
+O objetivo é fazer o controle dos parâmentros Attack, Hold, Decay, Sustain e Release deste AHDSR de forma completamente digital, através 
 de uma interface intúitiva em um computador.
 
 Mais além, alguns objetivos secundários do projeto são:
