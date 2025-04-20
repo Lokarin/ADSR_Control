@@ -1,11 +1,11 @@
 ; ------------------------------------------------------------------------------
-; Project:  LED Blink
-; File:     ledBlink.asm
-; Author:   Leandro Schwarz
-; Created:  2024-09-23
-; Modified: 2024-09-23
-; Version:  1.0
-; Notes:    Blinks a LED. Fcpu = 16 MHz.
+; Project:  Digipot Control
+; File:     main.asm
+; Author:   Gabriel Garcia
+; Created:  2025-04-19
+; Modified: 2025-04-19
+; Version:  1.a
+; Notes:    Controle de Digipots. Fcpu = 16 MHz.
 ; ------------------------------------------------------------------------------
 
 ; ------------------------------------------------------------------------------
@@ -25,8 +25,6 @@
 .def    totalStepsReg       = R26
 .def    flagReg             = R27
 .def    digiPotSelectorReg  = R28
-
-
 
 ; ------------------------------------------------------------------------------
 ; Interrupt vectors
@@ -130,8 +128,8 @@ upResistanceStart:
 
     ;seta o digiPot para aumentar a resistencia
     LDI   auxReg, 0b00000000
-    ORI   digiPotSelectorReg, 0b00011111 ; prepara digiPot para ser invertido
-    COM   digiPotSelectorReg ; chip Selector ativo em low
+    ORI   digiPotSelectorReg, 0b00011111    ; prepara digiPot para ser invertido
+    COM   digiPotSelectorReg                ; chip Selector ativo em low
     OR    auxReg, digiPotSelectorReg
     OUT   PORTD, auxReg
     RCALL delay500
@@ -163,8 +161,8 @@ downResistanceStart:
 
     ;seta o digiPot para diminuir a resistencia e seleciona o chip
     LDI   auxReg, 0b00000100
-    ORI   digiPotSelectorReg, 0b00011111 ; prepara digiPot para ser invertido
-    COM   digiPotSelectorReg ; chip Selector ativo em low
+    ORI   digiPotSelectorReg, 0b00011111    ; prepara digiPot para ser invertido
+    COM   digiPotSelectorReg                ; chip Selector ativo em low
     OR    auxReg, digiPotSelectorReg
     OUT   PORTD, auxReg
     RCALL delay500
