@@ -98,22 +98,24 @@
 ; Main function
 ; ------------------------------------------------------------------------------
 main:
-    ;Startup area
-    LDI   opCodeAttackReg, 0b00000101
-    LDI   opCodeDecayAndReleaseReg, 0b00000101
+    LDI   opCodeAttackReg, 0b10000101
+    LDI   opCodeDecayAndReleaseReg, 0b10000101
     LDI   opCodeSustainReg, 0b00000101
-    LDI   digiPotSelectorReg, 0b10000000
-    LDI   flagReg, 0b00000011
+    LDI   digiPotSelectorReg, 0b10000000 ;PD7, PD6, PD5 = Chip Select
+    LDI   flagReg, 0b00000011 ;quando flagReg == 0 todos os digipots foram configurados
     LDI   auxReg, 0xFF
 
-    OUT   DDRD, auxReg
-    OUT   PORTD, R17
-    MOV   auxReg, opCodeAttackReg
+    OUT   DDRD, auxReg ;habilita todas as portas D como saida
+    OUT   PORTD, R17 ;seta tensao de todas as saidas para 0
+    MOV   auxReg, opCodeAttackReg ;fase de ataque e verificada primeiro
 
 mainLoop:
 
 resistanceDirectionCheck:
-    ;verifica se o primeiro bit do opCodeReg é 0 ou 1
+    ;verifica se o bit mais a esquerda do opCodeXReg é 0 ou 1
+    ;caso bit == 1: upResistanceStart
+    ;caso bit == 0: downResistanceStart
+
     MOV    UpOrDownReg, auxReg
     ANDI   UpOrDownReg, 0b10000000
     CPI    UpOrDownReg, 0b10000000
@@ -121,94 +123,95 @@ resistanceDirectionCheck:
     RJMP   downResistanceStart
 
 upResistanceStart:
-    ;determinar o numero de passos com o restante 7 outros bits do opCodeReg
+    ;determina o numero de passos(ou loops) com os 7 outros bits do opCodeXReg
     MOV   totalStepsReg, auxReg
-    ANDI  totalStepsReg, 0b01111111
-    MOV   loopReg, totalStepsReg
+    ANDI  totalStepsReg, 0b01111111 ;isolando os 7 bits
+    MOV   loopReg, totalStepsReg ;valor resultante e armazenado no totalStepsReg
 
-    ;seta o digiPot para aumentar a resistencia
-    LDI   auxReg, 0b00000000
-    ORI   digiPotSelectorReg, 0b00011111    ; prepara digiPot para ser invertido
-    COM   digiPotSelectorReg                ; chip Selector ativo em low
+    ;prepara apenas um digiPot para aumentar a resistencia
+    LDI   auxReg, 0b00000000 ;PD4 seta o digipot para começar em up
+    ORI   digiPotSelectorReg, 0b00011111 ; prepara digiPotSelectorReg para ser invertido
+    COM   digiPotSelectorReg ;cigiPotSelectorReg ativo em low
     OR    auxReg, digiPotSelectorReg
     OUT   PORTD, auxReg
     RCALL delay500
 
-    ;decrementa a flag em 1
-    DEC flagReg
+    DEC   flagReg ;decrementa a flag em 1
 
 upResistanceLoop:
-    LDI   auxReg, 0b00000001
-    OR    auxReg, digiPotSelectorReg
+    ;ativa e desativa o PD3(digipot CLK) enquanto o numero de steps(ou loops) armazenados em loopReg é != 0
+    ORI   auxReg, 0b00001000 ;borda de subida
     OUT   PORTD, auxReg
     RCALL delay500
 
-    LDI   auxReg, 0b00000000
-    OR    auxReg, digiPotSelectorReg
+    ANDI  auxReg, 0b11110111 ;borda de descida
     OUT   PORTD, auxReg
     RCALL delay500
 
     DEC   loopReg
-    BREQ  nextOpCode
+    BREQ  nextOpCode ;se loop acabou pula para o proxima fase do ADSR
 
-    RJMP upResistanceLoop
+    RJMP  upResistanceLoop ;se o loop não acabou retorna para o comeco dele
 
 downResistanceStart:
-    ;determinar o numero de passos com o restante 7 outros bits do opCodeReg
+    ;determinar o numero de passos com o restante 7 outros bits do opCodeXReg
     MOV   totalStepsReg, auxReg
-    ANDI  totalStepsReg, 0b01111111
-    MOV   loopReg, totalStepsReg
+    ANDI  totalStepsReg, 0b01111111 ;isolando os 7 bits
+    MOV   loopReg, totalStepsReg ;valor resultante e armazenado no totalStepsReg
 
-    ;seta o digiPot para diminuir a resistencia e seleciona o chip
-    LDI   auxReg, 0b00000100
-    ORI   digiPotSelectorReg, 0b00011111    ; prepara digiPot para ser invertido
-    COM   digiPotSelectorReg                ; chip Selector ativo em low
+    ;prepara apenas um digiPot para diminuir a resistencia
+    LDI   auxReg, 0b00010000 ;PD4 seta o digipot para começar em down
+    ORI   digiPotSelectorReg, 0b00011111 ;prepara digiPotSelectorReg para ser invertido
+    COM   digiPotSelectorReg ;digiPotSelectorReg ativo em low
     OR    auxReg, digiPotSelectorReg
     OUT   PORTD, auxReg
     RCALL delay500
 
     ;decrementa a flag em 1
-    DEC flagReg
+    DEC   flagReg
 
 downResistanceLoop:
-    LDI   auxReg, 0b00000101
-    OR    auxReg, digiPotSelectorReg
+    ;ativa e desativa o PD3(digipot CLK) enquanto o numero de steps(ou loops) armazenados em loopReg é != 0
+    ORI   auxReg, 0b00001000 ;borda de subida
     OUT   PORTD, auxReg
     RCALL delay500
 
-    LDI   auxReg, 0b00000100
-    OR    auxReg, digiPotSelectorReg
+    ANDI  auxReg, 0b11110111 ;borda de descida
     OUT   PORTD, auxReg
     RCALL delay500
 
     DEC   loopReg
-    BREQ  nextOpCode
+    BREQ  nextOpCode ;se loop acabou pula para o proxima fase do ADSR
 
-    RJMP  downResistanceLoop
+    RJMP  downResistanceLoop ;se o loop não acabou retorna para o comeco dele
 
 nextOpCode:
-    ; restaura digiPotSelectorReg para a forma binaria original
+    ;restaura digiPotSelectorReg para a forma binaria original e ativa proxima digipot
     ORI   digiPotSelectorReg, 0b00011111
     COM   digiPotSelectorReg
     LSR   digiPotSelectorReg
 
+    ;se flagReg == 0 jump para fim label
     CPI   flagReg, 0b00000000
     BREQ  fim
 
+    ;se flagReg == 2 jump para opCodeDecayAndRelease label
+    ;se flagReg != 2 codigo continua
     CPI   flagReg, 0b00000010
     BREQ  opCodeDecayAndRelease
 
 opCodeSustain:
+    ;carrega opCodeSustainReg para auxReg e reinicia o codigo em resistanceDirectionCheck
     MOV   auxReg, opCodeSustainReg
     RJMP  resistanceDirectionCheck
 
 opCodeDecayAndRelease:
+    ;carrega opCodeDecayAndReleaseReg para auxReg e reinicia o codigo em resistanceDirectionCheck
     MOV   auxReg, opCodeDecayAndReleaseReg
     RJMP  resistanceDirectionCheck
 
 fim:
     RJMP  fim
-
 ; ------------------------------------------------------------------------------
 ; Function definitions
 ; ------------------------------------------------------------------------------
