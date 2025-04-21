@@ -16,15 +16,16 @@
 ; ------------------------------------------------------------------------------
 ; Register definitions
 ; ------------------------------------------------------------------------------
-.def    auxReg       = R16
-.def    loopReg      = R21
-.def    opCodeAttackReg    = R22
+.def    auxReg                      = R16
+.def    byteRecebido                = R17
+.def    loopReg                     = R21
+.def    opCodeAttackReg             = R22
 .def    opCodeDecayAndReleaseReg    = R23
-.def    opCodeSustainReg    = R24
-.def    UpOrDownReg         = R25
-.def    totalStepsReg       = R26
-.def    flagReg             = R27
-.def    digiPotSelectorReg  = R28
+.def    opCodeSustainReg            = R24
+.def    UpOrDownReg                 = R25
+.def    totalStepsReg               = R26
+.def    flagReg                     = R27
+.def    digiPotSelectorReg          = R28
 
 ; ------------------------------------------------------------------------------
 ; Interrupt vectors
@@ -84,32 +85,34 @@
 .org INT_VECTORS_SIZE
 
 ; ------------------------------------------------------------------------------
-; Include other assembly files
-; ------------------------------------------------------------------------------
-; NONE
-
-; ------------------------------------------------------------------------------
-; Constants stored in Flash memory
-; Note: Variables must be multiples of 2, since memory is organized in 16 bits
-; ------------------------------------------------------------------------------
-; NONE
-
-; ------------------------------------------------------------------------------
 ; Main function
 ; ------------------------------------------------------------------------------
 main:
-    LDI   opCodeAttackReg, 0b10000101
-    LDI   opCodeDecayAndReleaseReg, 0b10000101
-    LDI   opCodeSustainReg, 0b00000101
+USART_init:
+    ;Inicializa a USART (UBRR0 = 103 para 9600 bps)
+    ldi auxReg, high(103)
+    sts UBRR0H, auxReg
+    ldi auxReg, low(103)
+    sts UBRR0L, auxReg
+
+    ;Configura USART: 8 bits, 1 stop, sem paridade
+    ldi auxReg, (1 << UCSZ01) | (1 << UCSZ00)
+    sts UCSR0C, auxReg
+
+    ;Habilita RX e TX
+    ldi auxReg, (1 << RXEN0) | (1 << TXEN0)
+    sts UCSR0B, auxReg
+
+mainLoop:
     LDI   digiPotSelectorReg, 0b10000000 ;PD7, PD6, PD5 = Chip Select
     LDI   flagReg, 0b00000011 ;quando flagReg == 0 todos os digipots foram configurados
     LDI   auxReg, 0xFF
 
     OUT   DDRD, auxReg ;habilita todas as portas D como saida
-    OUT   PORTD, R17 ;seta tensao de todas as saidas para 0
-    MOV   auxReg, opCodeAttackReg ;fase de ataque e verificada primeiro
+    OUT   PORTD, R29 ;seta tensao de todas as saidas para 0
 
-mainLoop:
+    RCALL recebe3Bytes
+    MOV   auxReg, opCodeAttackReg ;fase de ataque e verificada primeiro
 
 resistanceDirectionCheck:
     ;verifica se o bit mais a esquerda do opCodeXReg é 0 ou 1
@@ -134,7 +137,7 @@ upResistanceStart:
     COM   digiPotSelectorReg ;cigiPotSelectorReg ativo em low
     OR    auxReg, digiPotSelectorReg
     OUT   PORTD, auxReg
-    RCALL delay500
+    ;RCALL delay500
 
     DEC   flagReg ;decrementa a flag em 1
 
@@ -142,11 +145,11 @@ upResistanceLoop:
     ;ativa e desativa o PD3(digipot CLK) enquanto o numero de steps(ou loops) armazenados em loopReg é != 0
     ORI   auxReg, 0b00001000 ;borda de subida
     OUT   PORTD, auxReg
-    RCALL delay500
+    ;RCALL delay500
 
     ANDI  auxReg, 0b11110111 ;borda de descida
     OUT   PORTD, auxReg
-    RCALL delay500
+    ;RCALL delay500
 
     DEC   loopReg
     BREQ  nextOpCode ;se loop acabou pula para o proxima fase do ADSR
@@ -165,7 +168,7 @@ downResistanceStart:
     COM   digiPotSelectorReg ;digiPotSelectorReg ativo em low
     OR    auxReg, digiPotSelectorReg
     OUT   PORTD, auxReg
-    RCALL delay500
+    ;RCALL delay500
 
     ;decrementa a flag em 1
     DEC   flagReg
@@ -174,11 +177,11 @@ downResistanceLoop:
     ;ativa e desativa o PD3(digipot CLK) enquanto o numero de steps(ou loops) armazenados em loopReg é != 0
     ORI   auxReg, 0b00001000 ;borda de subida
     OUT   PORTD, auxReg
-    RCALL delay500
+    ;RCALL delay500
 
     ANDI  auxReg, 0b11110111 ;borda de descida
     OUT   PORTD, auxReg
-    RCALL delay500
+    ;RCALL delay500
 
     DEC   loopReg
     BREQ  nextOpCode ;se loop acabou pula para o proxima fase do ADSR
@@ -211,40 +214,51 @@ opCodeDecayAndRelease:
     RJMP  resistanceDirectionCheck
 
 fim:
-    RJMP  fim
+    RJMP  mainLoop
+
+; =================================================
+; Sub-rotina: espera e lê 3 bytes da interface USART
+; =================================================
+recebe3Bytes:
+    ; Byte 1
+recebeByte1:
+    lds  auxReg, UCSR0A
+    sbrs auxReg, RXC0
+    rjmp recebeByte1
+
+    lds  byteRecebido, UDR0
+    MOV  opCodeAttackReg, byteRecebido
+
+    ; Byte 2
+recebeByte2:
+    lds  auxReg, UCSR0A
+    sbrs auxReg, RXC0
+    rjmp recebeByte2
+
+    lds  byteRecebido, UDR0
+    MOV  opCodeDecayAndReleaseReg, byteRecebido
+
+    ; Byte 3
+recebeByte3:
+    lds  auxReg, UCSR0A
+    sbrs auxReg, RXC0
+    rjmp recebeByte3
+
+    lds  byteRecebido, UDR0
+    MOV  opCodeSustainReg, byteRecebido
+
+    ret
+
+;enviaByte:
+;esperaUDRE:
+;    lds auxReg, UCSR0A
+;    sbrs auxReg, UDRE0
+;    rjmp esperaUDRE
+;    sts UDR0, byteRecebido
+;    ret
 ; ------------------------------------------------------------------------------
 ; Function definitions
 ; ------------------------------------------------------------------------------
-delay100:
-    NOP                     ; Comment line for CALL / Uncomment for RCALL
-    LDI     R18, 9
-    LDI     R19, 30
-    LDI     R20, 226
-delay100Loop:
-    DEC     R20
-    BRNE    delay100Loop
-    DEC     R19
-    BRNE    delay100Loop
-    DEC     R18
-    BRNE    delay100Loop
-    RJMP    PC + 1
-    RET
-
-delay250:
-    NOP                     ; Comment line for CALL / Uncomment for RCALL
-    LDI     R18, 21
-    LDI     R19, 75
-    LDI     R20, 188
-delay250Loop:
-    DEC     R20
-    BRNE    delay250Loop
-    DEC     R19
-    BRNE    delay250Loop
-    DEC     R18
-    BRNE    delay250Loop
-    RJMP    PC + 1
-    RET
-
 delay500:
     NOP                     ; Comment line for CALL / Uncomment for RCALL
     LDI     R18, 41
@@ -259,7 +273,6 @@ delay500Loop:
     BRNE    delay500Loop
     NOP
     RET
-
 ; ------------------------------------------------------------------------------
 ; Interrupt handlers
 ; ------------------------------------------------------------------------------
