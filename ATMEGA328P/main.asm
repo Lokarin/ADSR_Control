@@ -4,7 +4,7 @@
 ; Author:   Gabriel Garcia
 ; Created:  2025-04-19
 ; Modified: 2025-04-19
-; Version:  1.a
+; Version:  1.b
 ; Notes:    Controle de Digipots. Fcpu = 16 MHz.
 ; ------------------------------------------------------------------------------
 
