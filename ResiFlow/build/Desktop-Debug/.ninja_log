@@ -1,0 +1,10 @@
+# ninja log v6
+4	85	1745341126295440249	/home/lokarin/Documentos/Github/ADSR_Control/ResiFlow/build/Desktop-Debug/CMakeFiles/cmake.verify_globs	97ee2c5741d7c488
+85	436	1745341126715821490	ResiFlow_autogen/timestamp	3d863fc8a0471ee7
+85	436	1745341126715821490	ResiFlow_autogen/mocs_compilation.cpp	3d863fc8a0471ee7
+85	436	1745341126715821490	/home/lokarin/Documentos/Github/ADSR_Control/ResiFlow/build/Desktop-Debug/ResiFlow_autogen/timestamp	3d863fc8a0471ee7
+85	436	1745341126715821490	/home/lokarin/Documentos/Github/ADSR_Control/ResiFlow/build/Desktop-Debug/ResiFlow_autogen/mocs_compilation.cpp	3d863fc8a0471ee7
+438	2663	1745341126728820976	CMakeFiles/ResiFlow.dir/ResiFlow_autogen/mocs_compilation.cpp.o	530ea9bc63642ad3
+438	2687	1745341126729905242	CMakeFiles/ResiFlow.dir/main.cpp.o	94463f7060cdda7c
+439	2706	1745341126730101944	CMakeFiles/ResiFlow.dir/resiflow.cpp.o	b091267709ae04ee
+2706	3047	1745341128996731300	ResiFlow	4894ae34c3e74f3d
