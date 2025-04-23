@@ -11,12 +11,10 @@ class CustomKnob : public QDial {
 public:
     explicit CustomKnob(QWidget *parent = nullptr);
 
-protected:
-    void paintEvent(QPaintEvent *event) override;
-
 private:
     QPixmap knobImage;
     QPixmap caseImage;
+    void paintEvent(QPaintEvent *event) override;
 };
 
 #endif // CUSTOMKNOB_H
