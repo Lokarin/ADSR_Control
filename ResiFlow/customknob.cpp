@@ -14,6 +14,7 @@ void CustomKnob::paintEvent(QPaintEvent *) {
     //() << "paintEvent chamado!";
 
     QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
 
     int side = qMin(width(), height());
