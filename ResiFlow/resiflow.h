@@ -20,6 +20,6 @@ public:
 
 private:
     Ui::ResiFlow *ui;
-    CustomKnob *knob;
+    CustomKnob *attackKnob;
 };
 #endif // RESIFLOW_H

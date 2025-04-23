@@ -8,15 +8,17 @@ ResiFlow::ResiFlow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    // Instancia o knob customizado
-    knob = new CustomKnob(this);
-    knob->setMinimum(0);
-    knob->setMaximum(100);
+    attackKnob = new CustomKnob(this);
+    attackKnob->setMinimum(0);
+    attackKnob->setMaximum(100);
 
-    knob->setParent(ui->knobPlaceholder);
-    knob->setGeometry(0, 0, ui->knobPlaceholder->width(), ui->knobPlaceholder->height());
-    qDebug() << "Knob size:" << knob->size();
+    attackKnob->setParent(ui->knobPlaceholder);
+    attackKnob->setGeometry(0, 0, ui->knobPlaceholder->width(), ui->knobPlaceholder->height());
+    qDebug() << "Knob size:" << attackKnob->size();
 
+    connect(attackKnob, &QDial::valueChanged, this, [=](int value){
+        ui->attackLabel->setText(QString("Valor: %1").arg(value));
+    });
 
 }
 
