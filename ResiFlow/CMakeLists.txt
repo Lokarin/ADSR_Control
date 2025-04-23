@@ -12,11 +12,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
+qt_add_resources(RESOURCES resources.qrc)
+
 set(PROJECT_SOURCES
         main.cpp
         resiflow.cpp
         resiflow.h
         resiflow.ui
+	customknob.h
+	customknob.cpp
+	${RESOURCES}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

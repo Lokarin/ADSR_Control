@@ -2,6 +2,7 @@
 #define RESIFLOW_H
 
 #include <QMainWindow>
+#include "customknob.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -19,5 +20,6 @@ public:
 
 private:
     Ui::ResiFlow *ui;
+    CustomKnob *knob;
 };
 #endif // RESIFLOW_H
