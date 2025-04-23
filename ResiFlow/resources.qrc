@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>imgs/knob.png</file>
+        <file>imgs/knobShaft.png</file>
+        <file>imgs/knobCase.png</file>
     </qresource>
 </RCC>

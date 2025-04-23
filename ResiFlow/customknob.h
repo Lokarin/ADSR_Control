@@ -16,6 +16,7 @@ protected:
 
 private:
     QPixmap knobImage;
+    QPixmap caseImage;
 };
 
 #endif // CUSTOMKNOB_H
