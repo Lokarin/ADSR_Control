@@ -3,5 +3,6 @@
         <file>imgs/knob.png</file>
         <file>imgs/knobShaft.png</file>
         <file>imgs/knobCase.png</file>
+        <file>imgs/knobShaft2.png</file>
     </qresource>
 </RCC>

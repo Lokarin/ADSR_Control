@@ -2,7 +2,7 @@
 
 CustomKnob::CustomKnob(QWidget *parent)
     : QDial(parent),
-        knobImage("://imgs/knobShaft.png"),
+        knobImage("://imgs/knobShaft2.png"),
         caseImage("://imgs/knobCase.png")
 {
     setMinimum(0);
