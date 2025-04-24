@@ -14,8 +14,9 @@ Pode ser utilizado por entusiastas da área musical e eletrônica para explorar 
 
 ## Diagrama de Casos de Uso
 
-Apresentar o diagram de casos de uso, identificando as funcionalidades do
-sistema assim como os atores envolvidos
+<img src="img/casos_de_uso.png"
+     width="30%"
+     style="padding: 10px">
  
 ## Diagrama de Domínio do problema
 
