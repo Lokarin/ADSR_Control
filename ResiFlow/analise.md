@@ -15,8 +15,8 @@ Pode ser utilizado por entusiastas da área musical e eletrônica para explorar 
 ## Diagrama de Casos de Uso
 
 <img src="img/casos_de_uso.png"
-     width="30%"
-     style="padding: 10px">
+     width="60%"
+     style="display: block; margin-left: auto; margin-right: auto; padding: 10px;">
  
 ## Diagrama de Domínio do problema
 
