@@ -39,7 +39,6 @@ ResiFlow::ResiFlow(QWidget *parent) :
 
         mainLayout->addWidget(container);
     }
-
 }
 
 ResiFlow::~ResiFlow()
