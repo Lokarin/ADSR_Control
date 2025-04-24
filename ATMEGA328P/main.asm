@@ -3,8 +3,8 @@
 ; File:     main.asm
 ; Author:   Gabriel Garcia
 ; Created:  2025-04-19
-; Modified: 2025-04-19
-; Version:  1.b
+; Modified: 2025-04-24
+; Version:  1.a
 ; Notes:    Controle de Digipots. Fcpu = 16 MHz.
 ; ------------------------------------------------------------------------------
 
@@ -24,7 +24,7 @@
 .def    opCodeSustainReg            = R24
 .def    UpOrDownReg                 = R25
 .def    totalStepsReg               = R26
-.def    flagReg                     = R27
+.def    opBytesLeft                 = R27
 .def    digiPotSelectorReg          = R28
 
 ; ------------------------------------------------------------------------------
@@ -89,33 +89,33 @@
 ; ------------------------------------------------------------------------------
 main:
 USART_init:
-    ;Inicializa a USART (UBRR0 = 103 para 9600 bps)
+    ;inicializa a USART (UBRR0 = 103 para 9600 bps)
     ldi auxReg, high(103)
     sts UBRR0H, auxReg
     ldi auxReg, low(103)
     sts UBRR0L, auxReg
 
-    ;Configura USART: 8 bits, 1 stop, sem paridade
+    ;configura USART: 8 bits, 1 stop, sem paridade
     ldi auxReg, (1 << UCSZ01) | (1 << UCSZ00)
     sts UCSR0C, auxReg
 
-    ;Habilita RX e TX
+    ;habilita RX e TX
     ldi auxReg, (1 << RXEN0) | (1 << TXEN0)
     sts UCSR0B, auxReg
 
 mainLoop:
-    LDI   digiPotSelectorReg, 0b10000000 ;PD7, PD6, PD5 = Chip Select
-    LDI   flagReg, 0b00000011 ;quando flagReg == 0 todos os digipots foram configurados
+    LDI   digiPotSelectorReg, 0b10000000 ;PD7, PD6, PD5 = habilita o Chip Select dos digipots
+    LDI   opBytesLeft, 0b00000011 ;quando opBytesLeft alcancar 0 o codigo retorna para mainLoop
     LDI   auxReg, 0xFF
 
     OUT   DDRD, auxReg ;habilita todas as portas D como saida
-    OUT   PORTD, R29 ;seta tensao de todas as saidas para 0
+    OUT   PORTD, R29 ;inicia todas as saidas com 0V
 
     RCALL recebe3Bytes
-    MOV   auxReg, opCodeAttackReg ;fase de ataque e verificada primeiro
+    MOV   auxReg, opCodeAttackReg ;o byte da fase de attack e carregado primeiro
 
 resistanceDirectionCheck:
-    ;verifica se o bit mais a esquerda do opCodeXReg é 0 ou 1
+    ;verifica se o bit mais a esquerda do opCodeXReg e 0 ou 1
     ;caso bit == 1: upResistanceStart
     ;caso bit == 0: downResistanceStart
 
@@ -126,23 +126,26 @@ resistanceDirectionCheck:
     RJMP   downResistanceStart
 
 upResistanceStart:
+    ;decrementa a opBytesLeft em 1
+    DEC   opBytesLeft
+
     ;determina o numero de passos(ou loops) com os 7 outros bits do opCodeXReg
     MOV   totalStepsReg, auxReg
     ANDI  totalStepsReg, 0b01111111 ;isolando os 7 bits
     MOV   loopReg, totalStepsReg ;valor resultante e armazenado no totalStepsReg
+    CPI   loopReg, 0b00000000 ;se loop = 0, entao pula direto para o proximo opcode
+    BREQ  nextOpCodeContinue
 
-    ;prepara apenas um digiPot para aumentar a resistencia
-    LDI   auxReg, 0b00000000 ;PD4 seta o digipot para começar em up
-    ORI   digiPotSelectorReg, 0b00011111 ; prepara digiPotSelectorReg para ser invertido
-    COM   digiPotSelectorReg ;cigiPotSelectorReg ativo em low
+    ;habilita o digiPot selecionado em digiPotSelectorReg para aumentar a resistencia
+    LDI   auxReg, 0b00000000 ;PD4(digipots up/down pin) habilita o digipot para comecar em up
+    ORI   digiPotSelectorReg, 0b00011111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
+    COM   digiPotSelectorReg
     OR    auxReg, digiPotSelectorReg
     OUT   PORTD, auxReg
     ;RCALL delay500
 
-    DEC   flagReg ;decrementa a flag em 1
-
 upResistanceLoop:
-    ;ativa e desativa o PD3(digipot CLK) enquanto o numero de steps(ou loops) armazenados em loopReg é != 0
+    ;ativa e desativa o PD3(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
     ORI   auxReg, 0b00001000 ;borda de subida
     OUT   PORTD, auxReg
     ;RCALL delay500
@@ -152,29 +155,31 @@ upResistanceLoop:
     ;RCALL delay500
 
     DEC   loopReg
-    BREQ  nextOpCode ;se loop acabou pula para o proxima fase do ADSR
+    BREQ  nextOpCode ;se loop foi finalizado pula para o proxima fase do ADSR
 
-    RJMP  upResistanceLoop ;se o loop não acabou retorna para o comeco dele
+    RJMP  upResistanceLoop ;caso o loop nao tenha acabado retorna para o comeco dele
 
 downResistanceStart:
-    ;determinar o numero de passos com o restante 7 outros bits do opCodeXReg
+    ;decrementa opByterLeft em 1
+    DEC   opBytesLeft
+
+    ;determinar o numero de passos com os 7 outros bits do opCodeXReg
     MOV   totalStepsReg, auxReg
     ANDI  totalStepsReg, 0b01111111 ;isolando os 7 bits
     MOV   loopReg, totalStepsReg ;valor resultante e armazenado no totalStepsReg
+    CPI   loopReg, 0b00000000 ;se loop = 0, entao pula direto para o proximo opcode
+    BREQ  nextOpCodeContinue
 
-    ;prepara apenas um digiPot para diminuir a resistencia
-    LDI   auxReg, 0b00010000 ;PD4 seta o digipot para começar em down
-    ORI   digiPotSelectorReg, 0b00011111 ;prepara digiPotSelectorReg para ser invertido
-    COM   digiPotSelectorReg ;digiPotSelectorReg ativo em low
+    ;habilita o digiPot selecionado em digiPotSelectorReg para aumentar a resistencia
+    LDI   auxReg, 0b00010000 ;PD4(digipots up/down pin) habilita o digipot para comecar em up
+    ORI   digiPotSelectorReg, 0b00011111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
+    COM   digiPotSelectorReg
     OR    auxReg, digiPotSelectorReg
     OUT   PORTD, auxReg
     ;RCALL delay500
 
-    ;decrementa a flag em 1
-    DEC   flagReg
-
 downResistanceLoop:
-    ;ativa e desativa o PD3(digipot CLK) enquanto o numero de steps(ou loops) armazenados em loopReg é != 0
+    ;ativa e desativa o PD3(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
     ORI   auxReg, 0b00001000 ;borda de subida
     OUT   PORTD, auxReg
     ;RCALL delay500
@@ -184,23 +189,26 @@ downResistanceLoop:
     ;RCALL delay500
 
     DEC   loopReg
-    BREQ  nextOpCode ;se loop acabou pula para o proxima fase do ADSR
+    BREQ  nextOpCode ;se loop foi finalizado pula para o proxima fase do ADSR
 
-    RJMP  downResistanceLoop ;se o loop não acabou retorna para o comeco dele
+    RJMP  downResistanceLoop ;caso o loop nao tenha acabado retorna para o comeco dele
 
 nextOpCode:
-    ;restaura digiPotSelectorReg para a forma binaria original e ativa proxima digipot
+    ;restaura digiPotSelectorReg para a forma binaria original
     ORI   digiPotSelectorReg, 0b00011111
     COM   digiPotSelectorReg
+
+nextOpCodeContinue:
+    ;ativa o poximo digipot
     LSR   digiPotSelectorReg
 
-    ;se flagReg == 0 jump para fim label
-    CPI   flagReg, 0b00000000
+    ;se opBytesLeft == 0 jump para "fim" label
+    CPI   opBytesLeft, 0b00000000
     BREQ  fim
 
-    ;se flagReg == 2 jump para opCodeDecayAndRelease label
-    ;se flagReg != 2 codigo continua
-    CPI   flagReg, 0b00000010
+    ;se opBytesLeft == 2 jump para opCodeDecayAndRelease label
+    ;se opBytesLeft != 2 codigo continua
+    CPI   opBytesLeft, 0b00000010
     BREQ  opCodeDecayAndRelease
 
 opCodeSustain:
@@ -217,37 +225,37 @@ fim:
     RJMP  mainLoop
 
 ; =================================================
-; Sub-rotina: espera e lê 3 bytes da interface USART
+; Sub-rotina: espera e le 3 bytes da interface USART
 ; =================================================
 recebe3Bytes:
     ; Byte 1
 recebeByte1:
-    lds  auxReg, UCSR0A
-    sbrs auxReg, RXC0
-    rjmp recebeByte1
+    LDS  auxReg, UCSR0A
+    SBRS auxReg, RXC0
+    RJMP recebeByte1
 
-    lds  byteRecebido, UDR0
+    LDS  byteRecebido, UDR0
     MOV  opCodeAttackReg, byteRecebido
 
     ; Byte 2
 recebeByte2:
-    lds  auxReg, UCSR0A
-    sbrs auxReg, RXC0
-    rjmp recebeByte2
+    LDS  auxReg, UCSR0A
+    SBRS auxReg, RXC0
+    RJMP recebeByte2
 
-    lds  byteRecebido, UDR0
+    LDS  byteRecebido, UDR0
     MOV  opCodeDecayAndReleaseReg, byteRecebido
 
     ; Byte 3
 recebeByte3:
-    lds  auxReg, UCSR0A
-    sbrs auxReg, RXC0
-    rjmp recebeByte3
+    LDS  auxReg, UCSR0A
+    SBRS auxReg, RXC0
+    RJMP recebeByte3
 
-    lds  byteRecebido, UDR0
+    LDS  byteRecebido, UDR0
     MOV  opCodeSustainReg, byteRecebido
 
-    ret
+    RET
 
 ;enviaByte:
 ;esperaUDRE:
@@ -256,6 +264,7 @@ recebeByte3:
 ;    rjmp esperaUDRE
 ;    sts UDR0, byteRecebido
 ;    ret
+
 ; ------------------------------------------------------------------------------
 ; Function definitions
 ; ------------------------------------------------------------------------------
