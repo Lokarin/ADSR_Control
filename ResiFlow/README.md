@@ -2,14 +2,14 @@
      width="30%"
      style="padding: 10px">
 
-# << Título do projeto >>
+# ResiFlow
 
-## << Descrição breve do domínio do problema >>
+Software destinado a realizar o controle dos parâmetros analógicos do AHDSR através de uma interface amigável.
 
 > Repositório destinado para o desenvolvimento do projeto final da disciplina 
 > PRG22107 - Programação orientada objeto. 
 > 
-> Aluno: << Nome do aluno >>  
+> Aluno: Henrique Onuki; Gabriel Garcia  
 > Professor: Hugo Marcondes
 
 <p align=center><strong>SUMÁRIO</strong></p>

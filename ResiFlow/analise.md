@@ -1,14 +1,16 @@
 # Análise orientada a objeto
-> [!NOTE]
-> <p>A <strong>análise</strong> orientada a objeto consiste na descrição do 
-> problema a ser tratado, duas primeiras etapas da tabela abaixo, a definição de 
-> casos de uso e a definição do domínio do problema.</p>
 
 ## Descrição Geral do domínio do problema
 
-Descrever de forma geral o domínio do problema.
+Uma forma fácil e intuitiva de realizar o controle dos parâmatros de controle de um envelope AHDSR.
 
-Possíveis requisitos funcionais e não-funcionais podem ser elencados aqui.
+Faz a interface digital com quatro potenciômetros para ajustar seus parâmetros, e formas de guardar, carregar e remover tais parâmatros em presets.
+
+Exibe um gráfico em tempo real do comportamento esperado do envelope.
+
+Apresenta um sequenciador para ativar o envelope em ordem e tempo definido.
+
+Pode ser utilizado por entusiastas da área musical e eletrônica para explorar um melhor e mais controlado ajuste de parâmetros de um envelope AHDSR.
 
 ## Diagrama de Casos de Uso
 
