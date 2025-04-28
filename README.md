@@ -1,5 +1,5 @@
-## Projeto Potentia
-# Interface de Controle de Envelope ADSR para VCA
+# Projeto Potentia
+## Interface de Controle de Envelope ADSR para VCA
 Projeto para unidade curricular de Projeto Integrador 2.
 
 O projeto consiste em realizar o controle de forma digital - através de um aplicativo de computador - de um AHDSR.
