@@ -1,7 +1,11 @@
+<img src="ResiFlow/img/ifsc-logo.png"
+     width="30%"
+     style="padding: 10px">
+     
 # Projeto Potentia
-## Interface de Controle de Envelope ADSR para VCA
 Projeto para unidade curricular de Projeto Integrador 2.
 
+## Interface de Controle de Envelope AHDSR para VCA
 O projeto consiste em realizar o controle de forma digital - através de um aplicativo de computador - de um AHDSR.
 
 Um AHDSR é um dos muitos módulos componentes de um sintetizador modular, que tem como objetivo realizar o controle de outros módulos
@@ -20,3 +24,9 @@ Mais além, alguns objetivos secundários do projeto são:
 um sensor de distância.
 
 ![](concept/concept.png)
+
+# ResiFlow
+O aplicativo, de nome ResiFlow, deve fornecer formas de fazer o controle em tempo real dos parâmetros do AHDSR, disponibilizar suas formas de onda, 
+salvar, alterar e carregar presets de parâmetros criados pelo usuário, e também disponibilizar de um sequenciador para o uso dinâmico dessas funcionalidades.
+[**Mais sobre o ResiFlow**](./ResiFlow/README.md)<br>
+
