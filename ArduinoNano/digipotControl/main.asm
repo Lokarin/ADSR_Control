@@ -3,8 +3,8 @@
 ; File:     main.asm
 ; Author:   Gabriel Garcia
 ; Created:  2025-04-19
-; Modified: 2025-04-24
-; Version:  1.a
+; Modified: 2025-04-30
+; Version:  1.c
 ; Notes:    Controle de Digipots. Fcpu = 16 MHz.
 ; ------------------------------------------------------------------------------
 
@@ -99,8 +99,8 @@ USART_init:
     ldi auxReg, (1 << UCSZ01) | (1 << UCSZ00)
     sts UCSR0C, auxReg
 
-    ;habilita RX e TX
-    ldi auxReg, (1 << RXEN0) | (1 << TXEN0)
+    ;habilita RX
+    ldi auxReg, (1 << RXEN0)
     sts UCSR0B, auxReg
 
 mainLoop:
@@ -109,7 +109,8 @@ mainLoop:
     LDI   auxReg, 0xFF
 
     OUT   DDRD, auxReg ;habilita todas as portas D como saida
-    OUT   PORTD, R29 ;inicia todas as saidas com 0V
+    LDI   auxReg, 0b11100000 ;
+    OUT   PORTD, auxReg ;inicia todas as saidas com 0V com excessao de PD7, PD6, PD5 (Chip Select)
 
     RCALL recebe3Bytes
     MOV   auxReg, opCodeAttackReg ;o byte da fase de attack e carregado primeiro
@@ -126,10 +127,10 @@ resistanceDirectionCheck:
     RJMP   downResistanceStart
 
 upResistanceStart:
-    ;decrementa a opBytesLeft em 1
+    ;decrementa opByterLeft em 1
     DEC   opBytesLeft
 
-    ;determina o numero de passos(ou loops) com os 7 outros bits do opCodeXReg
+    ;determinar o numero de passos com os 7 outros bits do opCodeXReg
     MOV   totalStepsReg, auxReg
     ANDI  totalStepsReg, 0b01111111 ;isolando os 7 bits
     MOV   loopReg, totalStepsReg ;valor resultante e armazenado no totalStepsReg
@@ -137,7 +138,7 @@ upResistanceStart:
     BREQ  nextOpCodeContinue
 
     ;habilita o digiPot selecionado em digiPotSelectorReg para aumentar a resistencia
-    LDI   auxReg, 0b00000000 ;PD4(digipots up/down pin) habilita o digipot para comecar em up
+    LDI   auxReg, 0b00010000 ;PD4(digipots up/down pin) habilita o digipot para comecar em up
     ORI   digiPotSelectorReg, 0b00011111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
     COM   digiPotSelectorReg
     OR    auxReg, digiPotSelectorReg
@@ -160,10 +161,10 @@ upResistanceLoop:
     RJMP  upResistanceLoop ;caso o loop nao tenha acabado retorna para o comeco dele
 
 downResistanceStart:
-    ;decrementa opByterLeft em 1
+    ;decrementa a opBytesLeft em 1
     DEC   opBytesLeft
 
-    ;determinar o numero de passos com os 7 outros bits do opCodeXReg
+    ;determina o numero de passos(ou loops) com os 7 outros bits do opCodeXReg
     MOV   totalStepsReg, auxReg
     ANDI  totalStepsReg, 0b01111111 ;isolando os 7 bits
     MOV   loopReg, totalStepsReg ;valor resultante e armazenado no totalStepsReg
@@ -171,7 +172,7 @@ downResistanceStart:
     BREQ  nextOpCodeContinue
 
     ;habilita o digiPot selecionado em digiPotSelectorReg para aumentar a resistencia
-    LDI   auxReg, 0b00010000 ;PD4(digipots up/down pin) habilita o digipot para comecar em up
+    LDI   auxReg, 0b00000000 ;PD4(digipots up/down pin) habilita o digipot para comecar em up
     ORI   digiPotSelectorReg, 0b00011111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
     COM   digiPotSelectorReg
     OR    auxReg, digiPotSelectorReg
