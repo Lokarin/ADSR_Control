@@ -33,34 +33,39 @@ int main() {
 
     while(true) {
         // Coleta os valores do usuário
-        int atkSteps, decRelSteps, susSteps;
-        int atkDir, decRelDir, susDir;
+        int atkSteps, susSteps, holdSteps, decRelSteps;
+        int atkDir, susDir, holdDir, decRelDir; 
 
         cout << "Attack - direcao (1=up, 0=down): "; cin >> atkDir;
         cout << "Attack - passos (0-100): ";     cin >> atkSteps;
 
-        cout << "Decay/Release - direcao (1=up, 0=down): "; cin >> decRelDir;
-        cout << "Decay/Release - passos (0-100): ";     cin >> decRelSteps;
+        cout << "Hold - direcao (1=up, 0=down): "; cin >> holdDir;
+        cout << "Hold - passos (0-100): ";     cin >> holdSteps;
 
         cout << "Sustain - direcao (1=up, 0=down): "; cin >> susDir;
         cout << "Sustain - passos (0-100): ";     cin >> susSteps;
 
+        cout << "Decay/Release - direcao (1=up, 0=down): "; cin >> decRelDir;
+        cout << "Decay/Release - passos (0-100): ";     cin >> decRelSteps;
+
         // Gera opcodes
         BYTE opcodeAtk     = (atkDir << 7) | (atkSteps & 0x7F);
-        BYTE opcodeDecRel  = (decRelDir << 7) | (decRelSteps & 0x7F);
+        BYTE opcodeHold    = (holdDir << 7) | (holdSteps & 0x7F);
         BYTE opcodeSustain = (susDir << 7) | (susSteps & 0x7F);
+        BYTE opcodeDecRel  = (decRelDir << 7) | (decRelSteps & 0x7F);
     
         // Envia os três bytes
         DWORD bytesWritten;
-        BYTE opcodes[3] = { opcodeAtk, opcodeDecRel, opcodeSustain }; // exemplo
+        BYTE opcodes[4] = { opcodeAtk, opcodeHold, opcodeSustain, opcodeDecRel }; // exemplo
     
         if (!WriteFile(hSerial, opcodes, sizeof(opcodes), &bytesWritten, NULL)) {
             cerr << "Erro ao enviar dados." << endl;
         } else {
             cout << "Enviado: "
                  << "ATK=0x" << hex << (int)opcodeAtk
-                 << ", DEC/REL=0x" << (int)opcodeDecRel
+                 << ", HOLD=0x" << (int)opcodeHold
                  << ", SUS=0x" << (int)opcodeSustain
+                 << ", DEC/REL=0x" << (int)opcodeDecRel
                  << " (" << dec << bytesWritten << " bytes)" << endl;
         }
     }

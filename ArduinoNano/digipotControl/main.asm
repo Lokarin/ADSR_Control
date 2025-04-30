@@ -4,7 +4,7 @@
 ; Author:   Gabriel Garcia
 ; Created:  2025-04-19
 ; Modified: 2025-04-30
-; Version:  1.c
+; Version:  1.d
 ; Notes:    Controle de Digipots. Fcpu = 16 MHz.
 ; ------------------------------------------------------------------------------
 
@@ -16,16 +16,17 @@
 ; ------------------------------------------------------------------------------
 ; Register definitions
 ; ------------------------------------------------------------------------------
+.def    digiPotSelectorReg          = R17
 .def    auxReg                      = R16
-.def    byteRecebido                = R17
-.def    loopReg                     = R21
-.def    opCodeAttackReg             = R22
-.def    opCodeDecayAndReleaseReg    = R23
-.def    opCodeSustainReg            = R24
-.def    UpOrDownReg                 = R25
-.def    totalStepsReg               = R26
-.def    opBytesLeft                 = R27
-.def    digiPotSelectorReg          = R28
+.def    opBytesLeft                 = R21
+.def    UpOrDownReg                 = R22
+.def    totalStepsReg               = R23
+.def    loopReg                     = R24
+.def    byteRecebido                = R0
+.def    opCodeAttackReg             = R1
+.def    opCodeHoldReg               = R2
+.def    opCodeDecayAndReleaseReg    = R3
+.def    opCodeSustainReg            = R4
 
 ; ------------------------------------------------------------------------------
 ; Interrupt vectors
@@ -104,15 +105,15 @@ USART_init:
     sts UCSR0B, auxReg
 
 mainLoop:
-    LDI   digiPotSelectorReg, 0b10000000 ;PD7, PD6, PD5 = habilita o Chip Select dos digipots
-    LDI   opBytesLeft, 0b00000011 ;quando opBytesLeft alcancar 0 o codigo retorna para mainLoop
+    LDI   digiPotSelectorReg, 0b10000000 ;PD7, PD6, PD5, PD4 = habilita o Chip Select dos digipots
+    LDI   opBytesLeft, 0b00000100 ;quando opBytesLeft alcancar 0 o codigo retorna para mainLoop
     LDI   auxReg, 0xFF
 
     OUT   DDRD, auxReg ;habilita todas as portas D como saida
-    LDI   auxReg, 0b11100000 ;
-    OUT   PORTD, auxReg ;inicia todas as saidas com 0V com excessao de PD7, PD6, PD5 (Chip Select)
+    LDI   auxReg, 0b11110000 ;
+    OUT   PORTD, auxReg ;inicia todas as saidas com 0V com excessao de PD7, PD6, PD5, PD4 (Chip Select)
 
-    RCALL recebe3Bytes
+    RCALL recebe4Bytes
     MOV   auxReg, opCodeAttackReg ;o byte da fase de attack e carregado primeiro
 
 resistanceDirectionCheck:
@@ -138,22 +139,22 @@ upResistanceStart:
     BREQ  nextOpCodeContinue
 
     ;habilita o digiPot selecionado em digiPotSelectorReg para aumentar a resistencia
-    LDI   auxReg, 0b00010000 ;PD4(digipots up/down pin) habilita o digipot para comecar em up
-    ORI   digiPotSelectorReg, 0b00011111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
+    LDI   auxReg, 0b00001000 ;PD3(digipots up/down pin) habilita o digipot para comecar em up
+    ORI   digiPotSelectorReg, 0b00001111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
     COM   digiPotSelectorReg
     OR    auxReg, digiPotSelectorReg
     OUT   PORTD, auxReg
-    ;RCALL delay500
+    RCALL delay500
 
 upResistanceLoop:
-    ;ativa e desativa o PD3(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
-    ORI   auxReg, 0b00001000 ;borda de subida
+    ;ativa e desativa o PD2(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
+    ANDI   auxReg, 0b11111011 ;borda de subida
     OUT   PORTD, auxReg
-    ;RCALL delay500
+    RCALL delay500
 
-    ANDI  auxReg, 0b11110111 ;borda de descida
+    ORI  auxReg, 0b00000100 ;borda de descida
     OUT   PORTD, auxReg
-    ;RCALL delay500
+    RCALL delay500
 
     DEC   loopReg
     BREQ  nextOpCode ;se loop foi finalizado pula para o proxima fase do ADSR
@@ -171,23 +172,23 @@ downResistanceStart:
     CPI   loopReg, 0b00000000 ;se loop = 0, entao pula direto para o proximo opcode
     BREQ  nextOpCodeContinue
 
-    ;habilita o digiPot selecionado em digiPotSelectorReg para aumentar a resistencia
-    LDI   auxReg, 0b00000000 ;PD4(digipots up/down pin) habilita o digipot para comecar em up
-    ORI   digiPotSelectorReg, 0b00011111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
+    ;habilita o digiPot selecionado em digiPotSelectorReg para diminuir a resistencia
+    LDI   auxReg, 0b00000000 ;PD3(digipots up/down pin) habilita o digipot para comecar em down
+    ORI   digiPotSelectorReg, 0b00001111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
     COM   digiPotSelectorReg
     OR    auxReg, digiPotSelectorReg
     OUT   PORTD, auxReg
-    ;RCALL delay500
+    RCALL delay500
 
 downResistanceLoop:
-    ;ativa e desativa o PD3(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
-    ORI   auxReg, 0b00001000 ;borda de subida
+    ;ativa e desativa o PD2(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
+    ANDI   auxReg, 0b11111011 ;borda de subida
     OUT   PORTD, auxReg
-    ;RCALL delay500
+    RCALL delay500
 
-    ANDI  auxReg, 0b11110111 ;borda de descida
+    ORI  auxReg, 0b00000100 ;borda de descida
     OUT   PORTD, auxReg
-    ;RCALL delay500
+    RCALL delay500
 
     DEC   loopReg
     BREQ  nextOpCode ;se loop foi finalizado pula para o proxima fase do ADSR
@@ -196,39 +197,48 @@ downResistanceLoop:
 
 nextOpCode:
     ;restaura digiPotSelectorReg para a forma binaria original
-    ORI   digiPotSelectorReg, 0b00011111
+    ORI   digiPotSelectorReg, 0b00001111
     COM   digiPotSelectorReg
 
 nextOpCodeContinue:
-    ;ativa o poximo digipot
+    ;ativa o proximo digipot
     LSR   digiPotSelectorReg
 
     ;se opBytesLeft == 0 jump para "fim" label
     CPI   opBytesLeft, 0b00000000
     BREQ  fim
 
-    ;se opBytesLeft == 2 jump para opCodeDecayAndRelease label
+    ;se opBytesLeft == 3 jump para opCodeHoldReg label
+    CPI   opBytesLeft, 0b00000011
+    BREQ  opCodeHold
+
+    ;se opBytesLeft == 2 jump para opCodeSustain label
     ;se opBytesLeft != 2 codigo continua
     CPI   opBytesLeft, 0b00000010
-    BREQ  opCodeDecayAndRelease
-
-opCodeSustain:
-    ;carrega opCodeSustainReg para auxReg e reinicia o codigo em resistanceDirectionCheck
-    MOV   auxReg, opCodeSustainReg
-    RJMP  resistanceDirectionCheck
+    BREQ  opCodeSustain
 
 opCodeDecayAndRelease:
     ;carrega opCodeDecayAndReleaseReg para auxReg e reinicia o codigo em resistanceDirectionCheck
     MOV   auxReg, opCodeDecayAndReleaseReg
     RJMP  resistanceDirectionCheck
 
+opCodeHold:
+    ;carrega opCodeSustainReg para auxReg e reinicia o codigo em resistanceDirectionCheck
+    MOV   auxReg, opCodeHoldReg
+    RJMP  resistanceDirectionCheck
+
+opCodeSustain:
+    ;carrega opCodeSustainReg para auxReg e reinicia o codigo em resistanceDirectionCheck
+    MOV   auxReg, opCodeSustainReg
+    RJMP  resistanceDirectionCheck
+
 fim:
     RJMP  mainLoop
 
 ; =================================================
-; Sub-rotina: espera e le 3 bytes da interface USART
+; Sub-rotina: espera e le 4 bytes da interface USART
 ; =================================================
-recebe3Bytes:
+recebe4Bytes:
     ; Byte 1
 recebeByte1:
     LDS  auxReg, UCSR0A
@@ -245,7 +255,7 @@ recebeByte2:
     RJMP recebeByte2
 
     LDS  byteRecebido, UDR0
-    MOV  opCodeDecayAndReleaseReg, byteRecebido
+    MOV  opCodeHoldReg, byteRecebido
 
     ; Byte 3
 recebeByte3:
@@ -255,6 +265,15 @@ recebeByte3:
 
     LDS  byteRecebido, UDR0
     MOV  opCodeSustainReg, byteRecebido
+
+    ; Byte 4
+recebeByte4:
+    LDS  auxReg, UCSR0A
+    SBRS auxReg, RXC0
+    RJMP recebeByte4
+
+    LDS  byteRecebido, UDR0
+    MOV  opCodeDecayAndReleaseReg, byteRecebido
 
     RET
 
@@ -269,6 +288,7 @@ recebeByte3:
 ; ------------------------------------------------------------------------------
 ; Function definitions
 ; ------------------------------------------------------------------------------
+
 delay500:
     NOP                     ; Comment line for CALL / Uncomment for RCALL
     LDI     R18, 41
@@ -283,6 +303,7 @@ delay500Loop:
     BRNE    delay500Loop
     NOP
     RET
+
 ; ------------------------------------------------------------------------------
 ; Interrupt handlers
 ; ------------------------------------------------------------------------------
