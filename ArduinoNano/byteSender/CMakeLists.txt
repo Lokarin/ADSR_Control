@@ -1,24 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 project(byteSender)
 
-#include_directories(include)
+set(CMAKE_CXX_STANDARD 11)
 
-# source files
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+# Adiciona o único arquivo-fonte com os dois códigos unificados
+add_executable(${PROJECT_NAME} src/main.cpp)
 
-# executable
-add_executable(${PROJECT_NAME} ${SOURCES})
-
-
-#For the shared library:
-# set ( PROJECT_LINK_LIBS libtestStudent.so )
-# link_directories( libdir/lib )
-
-#For the static library:
-# set ( PROJECT_LINK_LIBS libtestStudent.a )
-# link_directories( libdir/lib )
-
-# include_directories(libdir/include)
-
-# target_link_libraries(libtest ${PROJECT_LINK_LIBS} )
+# Linka bibliotecas do sistema quando necessário
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME} setupapi)
+endif()
 
