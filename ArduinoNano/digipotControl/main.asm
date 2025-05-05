@@ -1,10 +1,10 @@
 ; ------------------------------------------------------------------------------
 ; Project:  Digipot Control
 ; File:     main.asm
-; Author:   Gabriel Garcia
+; Author:   Gabriel Garcia; Henrique Onuki
 ; Created:  2025-04-19
 ; Modified: 2025-05-1
-; Version:  1.e
+; Version:  1.f
 ; Notes:    Controle de Digipots. Fcpu = 16 MHz.
 ; ------------------------------------------------------------------------------
 
@@ -97,7 +97,7 @@ mainStart:
 digital_potentiometer_inicial_reset:
     ;seta todos os potenciômetros para começarem na mesma resistencia
 
-    LDI   auxReg, 0b00000000 ;ativa todos CS(chip select) e seta a resistencia para baixo(down)
+    LDI   auxReg, 0b00001000 ;ativa todos CS(chip select) e seta a resistencia para baixo(down)
     OUT   PORTD, auxReg
 
     LDI   loopReg, 0b1100100 ;carrega loopReg em 100
@@ -112,10 +112,12 @@ digital_potentiometer_loop:
     ORI   auxReg, 0b00000100 ;borda de subida
     OUT   PORTD, auxReg
     ;RCALL delay500
+    RCALL delay1us
 
     ANDI  auxReg, 0b11111011 ;borda de descida
     OUT   PORTD, auxReg
     ;RCALL delay500
+    RCALL delay1us
 
     DEC   loopReg ;Quando loopReg for zerado o reset inicial dos potenciometros esta completo
     BREQ  USART_init
@@ -147,8 +149,8 @@ mainLoop:
     OUT   PORTD, auxReg ;inicia todas as saidas com 0V com excessao de PD7, PD6, PD5, PD4 (Chip Select)
 
     RCALL recebe4Bytes
-    ;RCALL delay500
-    ;RCALL delay500
+    RCALL delay1us
+    RCALL delay500
     ;RCALL delay500
     ;RCALL delay500
     ;RCALL delay500
@@ -183,21 +185,21 @@ upResistanceStart:
     COM  digiPotSelectorReg
     OR   auxReg, digiPotSelectorReg
     OUT  PORTD, auxReg
-    ;RCALL delay500
-    ;RCALL delay500
+    RCALL delay1us
+    RCALL delay500
 
 upResistanceLoop:
     ;ativa e desativa o PD2(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
 
     ORI  auxReg, 0b00000100 ;borda de subida
     OUT  PORTD, auxReg
-    ;RCALL delay500
-    ;RCALL delay500
+    RCALL delay1us
+    RCALL delay500
 
     ANDI auxReg, 0b11111011 ;borda de descida
     OUT  PORTD, auxReg
-    ;RCALL delay500
-    ;RCALL delay500
+    RCALL delay1us
+    RCALL delay500
 
     DEC  loopReg
     BREQ nextOpCode ;se loop foi finalizado pula para o proxima fase do ADSR
@@ -221,21 +223,21 @@ downResistanceStart:
     COM  digiPotSelectorReg
     OR   auxReg, digiPotSelectorReg
     OUT  PORTD, auxReg
-    ;RCALL delay500
-    ;RCALL delay500
+    RCALL delay1us
+    RCALL delay500
 
 downResistanceLoop:
     ;ativa e desativa o PD2(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
 
     ORI  auxReg, 0b00000100 ;borda de subida
     OUT  PORTD, auxReg
-    ;RCALL delay500
-    ;RCALL delay500
+    RCALL delay1us
+    RCALL delay500
 
     ANDI auxReg, 0b11111011 ;borda de descida
     OUT  PORTD, auxReg
-    ;RCALL delay500
-    ;RCALL delay500
+    RCALL delay1us
+    RCALL delay500
 
     DEC  loopReg
     BREQ nextOpCode ;se loop foi finalizado pula para o proxima fase do ADSR
@@ -342,6 +344,9 @@ delay500:
     LDI     R18, 41
     LDI     R19, 150
     LDI     R20, 125
+    ;LDI     R18, 2      ; Outer loop
+    ;LDI     R19, 53     ; Middle loop
+    ;LDI     R20, 74     ; Inner loop
 delay500Loop:
     DEC     R20
     BRNE    delay500Loop
@@ -351,6 +356,13 @@ delay500Loop:
     BRNE    delay500Loop
     NOP
     RET
+
+delay1us:
+    LDI R20, 5       ; 1 ciclo
+loop1us:
+    DEC R20          ; 1 ciclo
+    BRNE loop1us     ; 2 ciclos se desviar, 1 ciclo se não
+    RET              ; 4 ciclos
 
 ; ------------------------------------------------------------------------------
 ; Interrupt handlers

@@ -1,5 +1,5 @@
 
-AVRA   Ver. 1.4.2 main.asm Wed Apr 30 22:20:37 2025
+AVRA   Ver. 1.4.2 main.asm Mon May  5 15:54:34 2025
 
 
          ; ------------------------------------------------------------------------------
@@ -7,8 +7,8 @@ AVRA   Ver. 1.4.2 main.asm Wed Apr 30 22:20:37 2025
          ; File:     main.asm
          ; Author:   Gabriel Garcia
          ; Created:  2025-04-19
-         ; Modified: 2025-04-30
-         ; Version:  1.d
+         ; Modified: 2025-05-1
+         ; Version:  1.e
          ; Notes:    Controle de Digipots. Fcpu = 16 MHz.
          ; ------------------------------------------------------------------------------
          
@@ -998,8 +998,8 @@ AVRA   Ver. 1.4.2 main.asm Wed Apr 30 22:20:37 2025
          ; ------------------------------------------------------------------------------
          ; Register definitions
          ; ------------------------------------------------------------------------------
-          .def    digiPotSelectorReg          = R17
           .def    auxReg                      = R16
+          .def    digiPotSelectorReg          = R17
           .def    opBytesLeft                 = R21
           .def    UpOrDownReg                 = R22
           .def    totalStepsReg               = R23
@@ -1014,277 +1014,337 @@ AVRA   Ver. 1.4.2 main.asm Wed Apr 30 22:20:37 2025
          ; Interrupt vectors
          ; ------------------------------------------------------------------------------
           .org 0x0000
-C:000000 940c 00b1     JMP resetHandler
+C:000000 940c 00c9     JMP resetHandler
           .org INT0addr
-C:000002 940c 00b0     JMP int0Handler
+C:000002 940c 00c8     JMP int0Handler
           .org INT1addr
-C:000004 940c 00b0     JMP int1Handler
+C:000004 940c 00c8     JMP int1Handler
           .org PCI0addr
-C:000006 940c 00b0     JMP pcint0Handler
+C:000006 940c 00c8     JMP pcint0Handler
           .org PCI1addr
-C:000008 940c 00b0     JMP pcint1Handler
+C:000008 940c 00c8     JMP pcint1Handler
           .org PCI2addr
-C:00000a 940c 00b0     JMP pcint2Handler
+C:00000a 940c 00c8     JMP pcint2Handler
           .org WDTaddr
-C:00000c 940c 00b0     JMP wdtHandler
+C:00000c 940c 00c8     JMP wdtHandler
           .org OC2Aaddr
-C:00000e 940c 00b0     JMP timer2CompAHandler
+C:00000e 940c 00c8     JMP timer2CompAHandler
           .org OC2Baddr
-C:000010 940c 00b0     JMP timer2CompBHandler
+C:000010 940c 00c8     JMP timer2CompBHandler
           .org OVF2addr
-C:000012 940c 00b0     JMP timer2OvfHandler
+C:000012 940c 00c8     JMP timer2OvfHandler
           .org ICP1addr
-C:000014 940c 00b0     JMP timer1CaptureHandler
+C:000014 940c 00c8     JMP timer1CaptureHandler
           .org OC1Aaddr
-C:000016 940c 00b0     JMP timer1CompAHandler
+C:000016 940c 00c8     JMP timer1CompAHandler
           .org OC1Baddr
-C:000018 940c 00b0     JMP timer1CompBHandler
+C:000018 940c 00c8     JMP timer1CompBHandler
           .org OVF1addr
-C:00001a 940c 00b0     JMP timer1OvfHandler
+C:00001a 940c 00c8     JMP timer1OvfHandler
           .org OC0Aaddr
-C:00001c 940c 00b0     JMP timer0CompAHandler
+C:00001c 940c 00c8     JMP timer0CompAHandler
           .org OC0Baddr
-C:00001e 940c 00b0     JMP timer0CompBHandler
+C:00001e 940c 00c8     JMP timer0CompBHandler
           .org OVF0addr
-C:000020 940c 00b0     JMP timer0OvfHandler
+C:000020 940c 00c8     JMP timer0OvfHandler
           .org SPIaddr
-C:000022 940c 00b0     JMP spiHandler
+C:000022 940c 00c8     JMP spiHandler
           .org URXCaddr
-C:000024 940c 00b0     JMP usartRxHandler
+C:000024 940c 00c8     JMP usartRxHandler
           .org UDREaddr
-C:000026 940c 00b0     JMP usartDataEmptyHandler
+C:000026 940c 00c8     JMP usartDataEmptyHandler
           .org UTXCaddr
-C:000028 940c 00b0     JMP usartTxHandler
+C:000028 940c 00c8     JMP usartTxHandler
           .org ADCCaddr
-C:00002a 940c 00b0     JMP adcHandler
+C:00002a 940c 00c8     JMP adcHandler
           .org ERDYaddr
-C:00002c 940c 00b0     JMP eepromHandler
+C:00002c 940c 00c8     JMP eepromHandler
           .org ACIaddr
-C:00002e 940c 00b0     JMP analogCompHandler
+C:00002e 940c 00c8     JMP analogCompHandler
           .org TWIaddr
-C:000030 940c 00b0     JMP twiHandler
+C:000030 940c 00c8     JMP twiHandler
           .org SPMRaddr
-C:000032 940c 00b0     JMP flashHandler
+C:000032 940c 00c8     JMP flashHandler
           .org INT_VECTORS_SIZE
          
          ; ------------------------------------------------------------------------------
          ; Main function
          ; ------------------------------------------------------------------------------
           main:
+          mainStart:
+         
+C:000034 ef0f          LDI   auxReg, 0xFF
+C:000035 b90a          OUT   DDRD, auxReg ;habilita todas as portas D como saida
+         
+          digital_potentiometer_inicial_reset:
+             ;seta todos os potenciômetros para começarem na mesma resistencia
+         
+C:000036 e008          LDI   auxReg, 0b00001000 ;ativa todos CS(chip select) e seta a resistencia para baixo(down)
+C:000037 b90b          OUT   PORTD, auxReg
+         
+C:000038 e684          LDI   loopReg, 0b1100100 ;carrega loopReg em 100
+         
+             ;RCALL delay500
+             ;RCALL delay500
+             ;RCALL delay500
+             ;RCALL delay500
+         
+          digital_potentiometer_loop:
+         
+C:000039 6004          ORI   auxReg, 0b00000100 ;borda de subida
+C:00003a b90b          OUT   PORTD, auxReg
+             ;RCALL delay500
+C:00003b d088          RCALL delay1us
+         
+C:00003c 7f0b          ANDI  auxReg, 0b11111011 ;borda de descida
+C:00003d b90b          OUT   PORTD, auxReg
+             ;RCALL delay500
+C:00003e d085          RCALL delay1us
+         
+C:00003f 958a          DEC   loopReg ;Quando loopReg for zerado o reset inicial dos potenciometros esta completo
+C:000040 f009          BREQ  USART_init
+         
+C:000041 cff7          RJMP  digital_potentiometer_loop
+         
           USART_init:
+         
              ;inicializa a USART (UBRR0 = 103 para 9600 bps)
-C:000034 e000          ldi auxReg, high(103)
-C:000035 9300 00c5     sts UBRR0H, auxReg
-C:000037 e607          ldi auxReg, low(103)
-C:000038 9300 00c4     sts UBRR0L, auxReg
+C:000042 e000          LDI auxReg, high(103)
+C:000043 9300 00c5     STS UBRR0H, auxReg
+C:000045 e607          LDI auxReg, low(103)
+C:000046 9300 00c4     STS UBRR0L, auxReg
          
              ;configura USART: 8 bits, 1 stop, sem paridade
-C:00003a e006          ldi auxReg, (1 << UCSZ01) | (1 << UCSZ00)
-C:00003b 9300 00c2     sts UCSR0C, auxReg
+C:000048 e006          LDI auxReg, (1 << UCSZ01) | (1 << UCSZ00)
+C:000049 9300 00c2     STS UCSR0C, auxReg
          
              ;habilita RX
-C:00003d e100          ldi auxReg, (1 << RXEN0)
-C:00003e 9300 00c1     sts UCSR0B, auxReg
+C:00004b e100          LDI auxReg, (1 << RXEN0)
+C:00004c 9300 00c1     STS UCSR0B, auxReg
          
           mainLoop:
-C:000040 e810          LDI   digiPotSelectorReg, 0b10000000 ;PD7, PD6, PD5, PD4 = habilita o Chip Select dos digipots
-C:000041 e054          LDI   opBytesLeft, 0b00000100 ;quando opBytesLeft alcancar 0 o codigo retorna para mainLoop
-C:000042 ef0f          LDI   auxReg, 0xFF
          
-C:000043 b90a          OUT   DDRD, auxReg ;habilita todas as portas D como saida
-C:000044 ef00          LDI   auxReg, 0b11110000 ;
-C:000045 b90b          OUT   PORTD, auxReg ;inicia todas as saidas com 0V com excessao de PD7, PD6, PD5, PD4 (Chip Select)
+C:00004e e810          LDI   digiPotSelectorReg, 0b10000000 ;PD7, PD6, PD5, PD4 = habilita o Chip Select dos digipots
+C:00004f e054          LDI   opBytesLeft, 0b00000100 ;quando opBytesLeft alcancar 0 o codigo retorna para mainLoop
          
-C:000046 d040          RCALL recebe4Bytes
-C:000047 2d01          MOV   auxReg, opCodeAttackReg ;o byte da fase de attack e carregado primeiro
+C:000050 ef00          LDI   auxReg, 0b11110000 ;
+C:000051 b90b          OUT   PORTD, auxReg ;inicia todas as saidas com 0V com excessao de PD7, PD6, PD5, PD4 (Chip Select)
+         
+C:000052 d048          RCALL recebe4Bytes
+C:000053 d070          RCALL delay1us
+C:000054 d063          RCALL delay500
+             ;RCALL delay500
+             ;RCALL delay500
+             ;RCALL delay500
+             ;RCALL delay500
+C:000055 2d01          MOV   auxReg, opCodeAttackReg ;o byte da fase de attack e carregado primeiro
          
           resistanceDirectionCheck:
              ;verifica se o bit mais a esquerda do opCodeXReg e 0 ou 1
              ;caso bit == 1: upResistanceStart
              ;caso bit == 0: downResistanceStart
          
-C:000048 2f60          MOV    UpOrDownReg, auxReg
-C:000049 7860          ANDI   UpOrDownReg, 0b10000000
-C:00004a 3860          CPI    UpOrDownReg, 0b10000000
-C:00004b f009          BREQ   upResistanceStart
-C:00004c c015          RJMP   downResistanceStart
+C:000056 2f60          MOV  UpOrDownReg, auxReg
+C:000057 7860          ANDI UpOrDownReg, 0b10000000
+C:000058 3860          CPI  UpOrDownReg, 0b10000000
+C:000059 f009          BREQ upResistanceStart
+C:00005a c018          RJMP downResistanceStart
          
           upResistanceStart:
-             ;decrementa opByterLeft em 1
-C:00004d 955a          DEC   opBytesLeft
+         
+C:00005b 955a          DEC  opBytesLeft ;decrementa opByterLeft em 1
          
              ;determinar o numero de passos com os 7 outros bits do opCodeXReg
-C:00004e 2f70          MOV   totalStepsReg, auxReg
-C:00004f 777f          ANDI  totalStepsReg, 0b01111111 ;isolando os 7 bits
-C:000050 2f87          MOV   loopReg, totalStepsReg ;valor resultante e armazenado no totalStepsReg
-C:000051 3080          CPI   loopReg, 0b00000000 ;se loop = 0, entao pula direto para o proximo opcode
-C:000052 f131          BREQ  nextOpCodeContinue
+C:00005c 2f70          MOV  totalStepsReg, auxReg
+C:00005d 777f          ANDI totalStepsReg, 0b01111111 ;isolando os 7 bits
+C:00005e 2f87          MOV  loopReg, totalStepsReg ;valor resultante e armazenado no totalStepsReg
+C:00005f 3080          CPI  loopReg, 0b00000000 ;se loop = 0, entao pula direto para o proximo opcode
+C:000060 f161          BREQ nextOpCodeContinue
          
              ;habilita o digiPot selecionado em digiPotSelectorReg para aumentar a resistencia
-C:000053 e008          LDI   auxReg, 0b00001000 ;PD3(digipots up/down pin) habilita o digipot para comecar em up
-C:000054 601f          ORI   digiPotSelectorReg, 0b00001111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
-C:000055 9510          COM   digiPotSelectorReg
-C:000056 2b01          OR    auxReg, digiPotSelectorReg
-C:000057 b90b          OUT   PORTD, auxReg
-C:000058 d04b          RCALL delay500
+C:000061 e008          LDI  auxReg, 0b00001000 ;PD3(digipots up/down pin) habilita o digipot para comecar em up
+C:000062 601f          ORI  digiPotSelectorReg, 0b00001111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
+C:000063 9510          COM  digiPotSelectorReg
+C:000064 2b01          OR   auxReg, digiPotSelectorReg
+C:000065 b90b          OUT  PORTD, auxReg
+C:000066 d05d          RCALL delay1us
+C:000067 d050          RCALL delay500
          
           upResistanceLoop:
              ;ativa e desativa o PD2(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
-C:000059 7f0b          ANDI   auxReg, 0b11111011 ;borda de subida
-C:00005a b90b          OUT   PORTD, auxReg
-C:00005b d048          RCALL delay500
          
-C:00005c 6004          ORI  auxReg, 0b00000100 ;borda de descida
-C:00005d b90b          OUT   PORTD, auxReg
-C:00005e d045          RCALL delay500
+C:000068 6004          ORI  auxReg, 0b00000100 ;borda de subida
+C:000069 b90b          OUT  PORTD, auxReg
+C:00006a d059          RCALL delay1us
+C:00006b d04c          RCALL delay500
          
-C:00005f 958a          DEC   loopReg
-C:000060 f0b1          BREQ  nextOpCode ;se loop foi finalizado pula para o proxima fase do ADSR
+C:00006c 7f0b          ANDI auxReg, 0b11111011 ;borda de descida
+C:00006d b90b          OUT  PORTD, auxReg
+C:00006e d055          RCALL delay1us
+C:00006f d048          RCALL delay500
          
-C:000061 cff7          RJMP  upResistanceLoop ;caso o loop nao tenha acabado retorna para o comeco dele
+C:000070 958a          DEC  loopReg
+C:000071 f0c9          BREQ nextOpCode ;se loop foi finalizado pula para o proxima fase do ADSR
+         
+C:000072 cff5          RJMP upResistanceLoop ;caso o loop nao tenha acabado retorna para o comeco dele
          
           downResistanceStart:
-             ;decrementa a opBytesLeft em 1
-C:000062 955a          DEC   opBytesLeft
+         
+C:000073 955a          DEC  opBytesLeft ;decrementa a opBytesLeft em 1
          
              ;determina o numero de passos(ou loops) com os 7 outros bits do opCodeXReg
-C:000063 2f70          MOV   totalStepsReg, auxReg
-C:000064 777f          ANDI  totalStepsReg, 0b01111111 ;isolando os 7 bits
-C:000065 2f87          MOV   loopReg, totalStepsReg ;valor resultante e armazenado no totalStepsReg
-C:000066 3080          CPI   loopReg, 0b00000000 ;se loop = 0, entao pula direto para o proximo opcode
-C:000067 f089          BREQ  nextOpCodeContinue
+C:000074 2f70          MOV  totalStepsReg, auxReg
+C:000075 777f          ANDI totalStepsReg, 0b01111111 ;isolando os 7 bits
+C:000076 2f87          MOV  loopReg, totalStepsReg ;valor resultante e armazenado no totalStepsReg
+C:000077 3080          CPI  loopReg, 0b00000000 ;se loop = 0, entao pula direto para o proximo opcode
+C:000078 f0a1          BREQ nextOpCodeContinue
          
              ;habilita o digiPot selecionado em digiPotSelectorReg para diminuir a resistencia
-C:000068 e000          LDI   auxReg, 0b00000000 ;PD3(digipots up/down pin) habilita o digipot para comecar em down
-C:000069 601f          ORI   digiPotSelectorReg, 0b00001111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
-C:00006a 9510          COM   digiPotSelectorReg
-C:00006b 2b01          OR    auxReg, digiPotSelectorReg
-C:00006c b90b          OUT   PORTD, auxReg
-C:00006d d036          RCALL delay500
+C:000079 e000          LDI  auxReg, 0b00000000 ;PD3(digipots up/down pin) habilita o digipot para comecar em down
+C:00007a 601f          ORI  digiPotSelectorReg, 0b00001111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
+C:00007b 9510          COM  digiPotSelectorReg
+C:00007c 2b01          OR   auxReg, digiPotSelectorReg
+C:00007d b90b          OUT  PORTD, auxReg
+C:00007e d045          RCALL delay1us
+C:00007f d038          RCALL delay500
          
           downResistanceLoop:
              ;ativa e desativa o PD2(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
-C:00006e 7f0b          ANDI   auxReg, 0b11111011 ;borda de subida
-C:00006f b90b          OUT   PORTD, auxReg
-C:000070 d033          RCALL delay500
          
-C:000071 6004          ORI  auxReg, 0b00000100 ;borda de descida
-C:000072 b90b          OUT   PORTD, auxReg
-C:000073 d030          RCALL delay500
+C:000080 6004          ORI  auxReg, 0b00000100 ;borda de subida
+C:000081 b90b          OUT  PORTD, auxReg
+C:000082 d041          RCALL delay1us
+C:000083 d034          RCALL delay500
          
-C:000074 958a          DEC   loopReg
-C:000075 f009          BREQ  nextOpCode ;se loop foi finalizado pula para o proxima fase do ADSR
+C:000084 7f0b          ANDI auxReg, 0b11111011 ;borda de descida
+C:000085 b90b          OUT  PORTD, auxReg
+C:000086 d03d          RCALL delay1us
+C:000087 d030          RCALL delay500
          
-C:000076 cff7          RJMP  downResistanceLoop ;caso o loop nao tenha acabado retorna para o comeco dele
+C:000088 958a          DEC  loopReg
+C:000089 f009          BREQ nextOpCode ;se loop foi finalizado pula para o proxima fase do ADSR
+         
+C:00008a cff5          RJMP downResistanceLoop ;caso o loop nao tenha acabado retorna para o comeco dele
          
           nextOpCode:
+         
              ;restaura digiPotSelectorReg para a forma binaria original
-C:000077 601f          ORI   digiPotSelectorReg, 0b00001111
-C:000078 9510          COM   digiPotSelectorReg
+C:00008b 601f          ORI digiPotSelectorReg, 0b00001111
+C:00008c 9510          COM digiPotSelectorReg
          
           nextOpCodeContinue:
+         
              ;ativa o proximo digipot
-C:000079 9516          LSR   digiPotSelectorReg
+C:00008d 9516          LSR  digiPotSelectorReg
          
              ;se opBytesLeft == 0 jump para "fim" label
-C:00007a 3050          CPI   opBytesLeft, 0b00000000
-C:00007b f051          BREQ  fim
+C:00008e 3050          CPI  opBytesLeft, 0b00000000
+C:00008f f051          BREQ fim
          
              ;se opBytesLeft == 3 jump para opCodeHoldReg label
-C:00007c 3053          CPI   opBytesLeft, 0b00000011
-C:00007d f021          BREQ  opCodeHold
+C:000090 3053          CPI  opBytesLeft, 0b00000011
+C:000091 f021          BREQ opCodeHold
          
              ;se opBytesLeft == 2 jump para opCodeSustain label
              ;se opBytesLeft != 2 codigo continua
-C:00007e 3052          CPI   opBytesLeft, 0b00000010
-C:00007f f021          BREQ  opCodeSustain
+C:000092 3052          CPI  opBytesLeft, 0b00000010
+C:000093 f021          BREQ opCodeSustain
          
           opCodeDecayAndRelease:
+         
              ;carrega opCodeDecayAndReleaseReg para auxReg e reinicia o codigo em resistanceDirectionCheck
-C:000080 2d03          MOV   auxReg, opCodeDecayAndReleaseReg
-C:000081 cfc6          RJMP  resistanceDirectionCheck
+C:000094 2d03          MOV  auxReg, opCodeDecayAndReleaseReg
+C:000095 cfc0          RJMP resistanceDirectionCheck
          
           opCodeHold:
+         
              ;carrega opCodeSustainReg para auxReg e reinicia o codigo em resistanceDirectionCheck
-C:000082 2d02          MOV   auxReg, opCodeHoldReg
-C:000083 cfc4          RJMP  resistanceDirectionCheck
+C:000096 2d02          MOV  auxReg, opCodeHoldReg
+C:000097 cfbe          RJMP resistanceDirectionCheck
          
           opCodeSustain:
+         
              ;carrega opCodeSustainReg para auxReg e reinicia o codigo em resistanceDirectionCheck
-C:000084 2d04          MOV   auxReg, opCodeSustainReg
-C:000085 cfc2          RJMP  resistanceDirectionCheck
+C:000098 2d04          MOV  auxReg, opCodeSustainReg
+C:000099 cfbc          RJMP resistanceDirectionCheck
          
           fim:
-C:000086 cfb9          RJMP  mainLoop
+         
+C:00009a cfb3          RJMP mainLoop
          
          ; =================================================
          ; Sub-rotina: espera e le 4 bytes da interface USART
          ; =================================================
           recebe4Bytes:
-             ; Byte 1
           recebeByte1:
-C:000087 9100 00c0     LDS  auxReg, UCSR0A
-C:000089 ff07          SBRS auxReg, RXC0
-C:00008a cffc          RJMP recebeByte1
          
-C:00008b 9000 00c6     LDS  byteRecebido, UDR0
-C:00008d 2c10          MOV  opCodeAttackReg, byteRecebido
+             ;Byte1
+C:00009b 9100 00c0     LDS  auxReg, UCSR0A
+C:00009d ff07          SBRS auxReg, RXC0
+C:00009e cffc          RJMP recebeByte1
          
-             ; Byte 2
+C:00009f 9000 00c6     LDS  byteRecebido, UDR0
+C:0000a1 2c10          MOV  opCodeAttackReg, byteRecebido
+         
           recebeByte2:
-C:00008e 9100 00c0     LDS  auxReg, UCSR0A
-C:000090 ff07          SBRS auxReg, RXC0
-C:000091 cffc          RJMP recebeByte2
          
-C:000092 9000 00c6     LDS  byteRecebido, UDR0
-C:000094 2c20          MOV  opCodeHoldReg, byteRecebido
+             ;Byte2
+C:0000a2 9100 00c0     LDS  auxReg, UCSR0A
+C:0000a4 ff07          SBRS auxReg, RXC0
+C:0000a5 cffc          RJMP recebeByte2
          
-             ; Byte 3
+C:0000a6 9000 00c6     LDS  byteRecebido, UDR0
+C:0000a8 2c20          MOV  opCodeHoldReg, byteRecebido
+         
           recebeByte3:
-C:000095 9100 00c0     LDS  auxReg, UCSR0A
-C:000097 ff07          SBRS auxReg, RXC0
-C:000098 cffc          RJMP recebeByte3
          
-C:000099 9000 00c6     LDS  byteRecebido, UDR0
-C:00009b 2c40          MOV  opCodeSustainReg, byteRecebido
+             ;Byte3
+C:0000a9 9100 00c0     LDS  auxReg, UCSR0A
+C:0000ab ff07          SBRS auxReg, RXC0
+C:0000ac cffc          RJMP recebeByte3
          
-             ; Byte 4
+C:0000ad 9000 00c6     LDS  byteRecebido, UDR0
+C:0000af 2c40          MOV  opCodeSustainReg, byteRecebido
+         
           recebeByte4:
-C:00009c 9100 00c0     LDS  auxReg, UCSR0A
-C:00009e ff07          SBRS auxReg, RXC0
-C:00009f cffc          RJMP recebeByte4
          
-C:0000a0 9000 00c6     LDS  byteRecebido, UDR0
-C:0000a2 2c30          MOV  opCodeDecayAndReleaseReg, byteRecebido
+             ;Byte4
+C:0000b0 9100 00c0     LDS  auxReg, UCSR0A
+C:0000b2 ff07          SBRS auxReg, RXC0
+C:0000b3 cffc          RJMP recebeByte4
          
-C:0000a3 9508          RET
+C:0000b4 9000 00c6     LDS  byteRecebido, UDR0
+C:0000b6 2c30          MOV  opCodeDecayAndReleaseReg, byteRecebido
          
-         ;enviaByte:
-         ;esperaUDRE:
-         ;    lds auxReg, UCSR0A
-         ;    sbrs auxReg, UDRE0
-         ;    rjmp esperaUDRE
-         ;    sts UDR0, byteRecebido
-         ;    ret
+C:0000b7 9508          RET
          
          ; ------------------------------------------------------------------------------
          ; Function definitions
          ; ------------------------------------------------------------------------------
-         
           delay500:
-C:0000a4 0000          NOP                     ; Comment line for CALL / Uncomment for RCALL
-C:0000a5 e229          LDI     R18, 41
-C:0000a6 e936          LDI     R19, 150
-C:0000a7 e74d          LDI     R20, 125
+C:0000b8 0000          NOP                     ; Comment line for CALL / Uncomment for RCALL
+C:0000b9 e229          LDI     R18, 41
+C:0000ba e936          LDI     R19, 150
+C:0000bb e74d          LDI     R20, 125
+             ;LDI     R18, 2      ; Outer loop
+             ;LDI     R19, 53     ; Middle loop
+             ;LDI     R20, 74     ; Inner loop
           delay500Loop:
-C:0000a8 954a          DEC     R20
-C:0000a9 f7f1          BRNE    delay500Loop
-C:0000aa 953a          DEC     R19
-C:0000ab f7e1          BRNE    delay500Loop
-C:0000ac 952a          DEC     R18
-C:0000ad f7d1          BRNE    delay500Loop
-C:0000ae 0000          NOP
-C:0000af 9508          RET
+C:0000bc 954a          DEC     R20
+C:0000bd f7f1          BRNE    delay500Loop
+C:0000be 953a          DEC     R19
+C:0000bf f7e1          BRNE    delay500Loop
+C:0000c0 952a          DEC     R18
+C:0000c1 f7d1          BRNE    delay500Loop
+C:0000c2 0000          NOP
+C:0000c3 9508          RET
+         
+          delay1us:
+C:0000c4 e045          LDI R20, 5       ; 1 ciclo
+          loop1us:
+C:0000c5 954a          DEC R20          ; 1 ciclo
+C:0000c6 f7f1          BRNE loop1us     ; 2 ciclos se desviar, 1 ciclo se não
+C:0000c7 9508          RET              ; 4 ciclos
          
          ; ------------------------------------------------------------------------------
          ; Interrupt handlers
@@ -1314,17 +1374,17 @@ C:0000af 9508          RET
           analogCompHandler:
           twiHandler:
           flashHandler:
-C:0000b0 9518          RETI
+C:0000c8 9518          RETI
           resetHandler:
-C:0000b1 e000          LDI     R16, 0
-C:0000b2 9300 00c1     STS     UCSR0B, R16
-C:0000b4 ef3f          LDI     R19, LOW(RAMEND)
-C:0000b5 bf3d          OUT     SPL, R19
-C:0000b6 e038          LDI     R19, HIGH(RAMEND)
-C:0000b7 bf3e          OUT     SPH,R19
-C:0000b8 e030          LDI     R19, 0
-C:0000b9 e000          LDI     R16, 0
-C:0000ba 940c 0034     JMP     main
+C:0000c9 e000          LDI     R16, 0
+C:0000ca 9300 00c1     STS     UCSR0B, R16
+C:0000cc ef3f          LDI     R19, LOW(RAMEND)
+C:0000cd bf3d          OUT     SPL, R19
+C:0000ce e038          LDI     R19, HIGH(RAMEND)
+C:0000cf bf3e          OUT     SPH,R19
+C:0000d0 e030          LDI     R19, 0
+C:0000d1 e000          LDI     R16, 0
+C:0000d2 940c 0034     JMP     main
 Used memory blocks:
    code      :  Start = 0x0000, End = 0x0001, Length = 0x0002 (2 words), Overlap=N
    code      :  Start = 0x0002, End = 0x0003, Length = 0x0002 (2 words), Overlap=N
@@ -1352,11 +1412,11 @@ Used memory blocks:
    code      :  Start = 0x002E, End = 0x002F, Length = 0x0002 (2 words), Overlap=N
    code      :  Start = 0x0030, End = 0x0031, Length = 0x0002 (2 words), Overlap=N
    code      :  Start = 0x0032, End = 0x0033, Length = 0x0002 (2 words), Overlap=N
-   code      :  Start = 0x0034, End = 0x00BB, Length = 0x0088 (136 words), Overlap=N
+   code      :  Start = 0x0034, End = 0x00D3, Length = 0x00A0 (160 words), Overlap=N
 
 
 Segment usage:
-   Code      :       188 words (376 bytes)
+   Code      :       212 words (424 bytes)
    Data      :         0 bytes
    EEPROM    :         0 bytes
 
