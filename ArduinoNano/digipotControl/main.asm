@@ -134,11 +134,13 @@ resistance_reset_loop:
 
     ORI   auxReg, 0b00000100 ;borda de subida
     OUT   PORTD, auxReg
-    RCALL delay100
+    ;RCALL delay100
+    RCALL delay1us 
 
     ANDI  auxReg, 0b11111011 ;borda de descida
     OUT   PORTD, auxReg
-    RCALL delay100
+    ;RCALL delay100
+    RCALL delay1us 
 
     DEC   loopReg ;Quando loopReg for zerado o reset dos potenciometros esta completo
     BREQ load_first_opcode
@@ -163,8 +165,8 @@ up_resistance_start:
     OR   auxReg, digiPotSelectorReg
     OUT  PORTD, auxReg
 
-    RCALL delay500
-    ;RCALL delay1us
+    ;RCALL delay500
+    RCALL delay1us
 
 up_resistance_loop:
     ;ativa e desativa o PD2(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
@@ -172,14 +174,14 @@ up_resistance_loop:
     ORI  auxReg, 0b00000100 ;borda de subida
     OUT  PORTD, auxReg
 
-    RCALL delay500
-    ;RCALL delay1us
+    ;RCALL delay500
+    RCALL delay1us
 
     ANDI auxReg, 0b11111011 ;borda de descida
     OUT  PORTD, auxReg
 
-    RCALL delay500
-    ;RCALL delay1us
+    ;RCALL delay500
+    RCALL delay1us
 
     DEC  loopReg
     BREQ next_byte ;se loop foi finalizado pula para o proxima fase do ADSR
