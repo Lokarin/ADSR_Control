@@ -102,34 +102,34 @@ int main() {
         //byte opcodeHold    = (holdDir << 7) | (holdSteps & 0x7F);
         //byte opcodeSustain = (susDir << 7) | (susSteps & 0x7F);
         //byte opcodeDecRel  = (decRelDir << 7) | (decRelSteps & 0x7F);
-        byte opcodeAtk     = (atkSteps & 0x7F);
-        byte opcodeHold    = (holdSteps & 0x7F);
-        byte opcodeSustain = (susSteps & 0x7F);
-        byte opcodeDecRel  = (decRelSteps & 0x7F);
-        byte opcodes[4]    = { opcodeAtk, opcodeHold, opcodeSustain, opcodeDecRel };
+        byte Atk     = (atkSteps & 0x7F);
+        byte Hold    = (holdSteps & 0x7F);
+        byte Sustain = (susSteps & 0x7F);
+        byte DecRel  = (decRelSteps & 0x7F);
+        byte passos[4]    = { Atk, Hold, Sustain, DecRel };
 
 #ifdef _WIN32
         DWORD bytesWritten;
-        if (!WriteFile(hSerial, opcodes, sizeof(opcodes), &bytesWritten, NULL)) {
+        if (!WriteFile(hSerial, passos, sizeof(passos), &bytesWritten, NULL)) {
             cerr << "Erro ao enviar dados." << endl;
         } else {
             cout << "Enviado: "
-                 << "ATK=0x" << hex << (int)opcodeAtk
-                 << ", HOLD=0x" << (int)opcodeHold
-                 << ", SUS=0x" << (int)opcodeSustain
-                 << ", DEC/REL=0x" << (int)opcodeDecRel
+                 << "ATK=0x" << hex << (int)Atk
+                 << ", HOLD=0x" << (int)Hold
+                 << ", SUS=0x" << (int)Sustain
+                 << ", DEC/REL=0x" << (int)DecRel
                  << " (" << dec << bytesWritten << " bytes)" << endl;
         }
 #else
-        ssize_t bytesWritten = write(serialPort, opcodes, sizeof(opcodes));
+        ssize_t bytesWritten = write(serialPort, passos, sizeof(passos));
         if (bytesWritten < 0) {
             cerr << "Erro ao enviar dados.\n";
         } else {
             cout << "Enviado: "
-                 << "ATK=0x" << hex << (int)opcodeAtk
-                 << ", HOLD=0x" << (int)opcodeHold
-                 << ", SUS=0x" << (int)opcodeSustain
-                 << ", DEC/REL=0x" << (int)opcodeDecRel
+                 << "ATK=0x" << hex << (int)Atk
+                 << ", HOLD=0x" << (int)Hold
+                 << ", SUS=0x" << (int)Sustain
+                 << ", DEC/REL=0x" << (int)DecRel
                  << " (" << dec << bytesWritten << " bytes)" << endl;
         }
 #endif
