@@ -16,8 +16,7 @@ using namespace std;
 
 int main() {
 #ifdef _WIN32
-    HANDLE hSerial = CreateFile("COM2", GENERIC_READ | GENERIC_WRITE, 0, NULL,
-                                OPEN_EXISTING, 0, NULL);
+    HANDLE hSerial = CreateFile("COM2", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
     if (hSerial == INVALID_HANDLE_VALUE) {
         cerr << "Erro ao abrir a porta COM\n";
@@ -85,24 +84,28 @@ int main() {
 
     while (true) {
         int atkSteps, susSteps, holdSteps, decRelSteps;
-        int atkDir, susDir, holdDir, decRelDir;
+        //int atkDir, susDir, holdDir, decRelDir;
 
-        cout << "Attack - direcao (1=up, 0=down): "; cin >> atkDir;
+        //cout << "Attack - direcao (1=up, 0=down): "; cin >> atkDir;
         cout << "Attack - passos (0-100): ";         cin >> atkSteps;
 
-        cout << "Hold - direcao (1=up, 0=down): ";   cin >> holdDir;
+        //cout << "Hold - direcao (1=up, 0=down): ";   cin >> holdDir;
         cout << "Hold - passos (0-100): ";           cin >> holdSteps;
 
-        cout << "Sustain - direcao (1=up, 0=down): "; cin >> susDir;
+        //cout << "Sustain - direcao (1=up, 0=down): "; cin >> susDir;
         cout << "Sustain - passos (0-100): ";         cin >> susSteps;
 
-        cout << "Decay/Release - direcao (1=up, 0=down): "; cin >> decRelDir;
+        //cout << "Decay/Release - direcao (1=up, 0=down): "; cin >> decRelDir;
         cout << "Decay/Release - passos (0-100): ";         cin >> decRelSteps;
 
-        byte opcodeAtk     = (atkDir << 7) | (atkSteps & 0x7F);
-        byte opcodeHold    = (holdDir << 7) | (holdSteps & 0x7F);
-        byte opcodeSustain = (susDir << 7) | (susSteps & 0x7F);
-        byte opcodeDecRel  = (decRelDir << 7) | (decRelSteps & 0x7F);
+        //byte opcodeAtk     = (atkDir << 7) | (atkSteps & 0x7F);
+        //byte opcodeHold    = (holdDir << 7) | (holdSteps & 0x7F);
+        //byte opcodeSustain = (susDir << 7) | (susSteps & 0x7F);
+        //byte opcodeDecRel  = (decRelDir << 7) | (decRelSteps & 0x7F);
+        byte opcodeAtk     = (atkSteps & 0x7F);
+        byte opcodeHold    = (holdSteps & 0x7F);
+        byte opcodeSustain = (susSteps & 0x7F);
+        byte opcodeDecRel  = (decRelSteps & 0x7F);
         byte opcodes[4]    = { opcodeAtk, opcodeHold, opcodeSustain, opcodeDecRel };
 
 #ifdef _WIN32
