@@ -87,6 +87,40 @@
 ; Main function
 ; ------------------------------------------------------------------------------
 main:
+
+TIMER0_delay1us_init:
+
+    ;Modo CTC (WGM01 = 1), Prescaler = 1 (CS00 = 1)
+    LDI auxReg, 0x00
+    STS TCCR0A, auxReg
+
+    LDI auxReg, (1 << WGM01) | (1 << CS00)
+    STS TCCR0B, auxReg
+
+    ;OCR0A = 7 -> 1 µs TOTAL
+    LDI auxReg, 7
+    STS OCR0A, auxReg
+
+TIMER1_wave_form_init:
+
+    ;configura PB1 como saída
+    LDI auxReg, (1<<PB1)
+    OUT DDRB, auxReg
+
+    ;ativa toggle (inversão) no pino OC1A (PB1) ao atingir OCR1A
+    LDI auxReg, (1<<COM1A0)
+    STS TCCR1A, auxReg
+
+    ;modo CTC (WGM12) + prescaler 256 (CS12)
+    LDI auxReg, (1<<WGM12) | (1<<CS12)
+    STS TCCR1B, auxReg
+
+    LDI auxReg, high(10416)
+    STS OCR1AH, auxReg
+
+    LDI auxReg, low(10416)
+    STS OCR1AL, auxReg
+
 USART_init:
 
     ;inicializa a USART (UBRR0 = 103 para 9600 bps)
@@ -116,7 +150,6 @@ main_loop:
     LDI   auxReg, 0b11110000 ;
     OUT   PORTD, auxReg ;inicia todas as saidas com 0V com excessao de PD7, PD6, PD5, PD4 (Chip Select)
 
-
 wait_for_4_byes:
 
     RCALL recebe4Bytes
@@ -135,19 +168,19 @@ resistance_reset_loop:
     ORI   auxReg, 0b00000100 ;borda de subida
     OUT   PORTD, auxReg
     ;RCALL delay100
-    RCALL delay1us 
+    RCALL delay1us
 
     ANDI  auxReg, 0b11111011 ;borda de descida
     OUT   PORTD, auxReg
     ;RCALL delay100
-    RCALL delay1us 
+    RCALL delay1us
 
     DEC   loopReg ;Quando loopReg for zerado o reset dos potenciometros esta completo
-    BREQ load_first_opcode
+    BREQ load_first_byte
 
     RJMP  resistance_reset_loop
 
-load_first_opcode:
+load_first_byte:
 
     MOV   auxReg, byteAttackReg ;o byte da fase de attack e carregado primeiro
 
@@ -283,6 +316,23 @@ recebeByte4:
 ; ------------------------------------------------------------------------------
 ; Function definitions
 ; ------------------------------------------------------------------------------
+delay1us:
+    ; Zera TCNT1
+    LDI auxReg, 0
+    STS TCNT1H, auxReg
+    STS TCNT1L, auxReg
+
+delay1us_polling:
+    LDS auxReg, TIFR1
+    SBRS auxReg, OCF1A     ; Verifica flag de comparação
+    RJMP delay1us_polling
+
+    ; Limpa a flag escrevendo 1
+    LDI auxReg, (1 << OCF1A)
+    STS TIFR1, auxReg
+
+    RET
+
 delay100:
     NOP                     ; Comment line for CALL / Uncomment for RCALL
     LDI     R18, 9
@@ -297,17 +347,6 @@ delay100Loop:
     BRNE    delay100Loop
     RJMP    PC + 1
     RET
-
-delay1us:
-    LDI R20, 5       ; 1 ciclo
-loop1us:
-    DEC R20          ; 1 ciclo
-    BRNE loop1us     ; 2 ciclos se desviar, 1 ciclo se não
-    RET              ; 4 ciclosdelay500:
-    NOP                     ; Comment line for CALL / Uncomment for RCALL
-    LDI     R18, 41
-    LDI     R19, 150
-    LDI     R20, 125
 
 delay500:
     NOP                     ; Comment line for CALL / Uncomment for RCALL
