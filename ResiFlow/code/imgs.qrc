@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/imgs">
+        <file>imgs/resiFlow.png</file>
+        <file>imgs/knobShaft2.png</file>
+        <file>imgs/knobShaft.png</file>
+        <file>imgs/knobCase.png</file>
+        <file>imgs/knob.png</file>
+    </qresource>
+</RCC>

@@ -2,8 +2,8 @@
 
 CustomKnob::CustomKnob(QWidget *parent)
     : QDial(parent),
-        knobImage("://imgs/knobShaft2.png"),
-        caseImage("://imgs/knobCase.png")
+        knobImage(":/imgs/imgs/knobShaft2.png"),
+        caseImage(":/imgs/imgs/knobCase.png")
 {
     setMinimum(0);
     setMaximum(100);
@@ -16,29 +16,22 @@ void CustomKnob::paintEvent(QPaintEvent *) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
-    
-    int side = qMin(width(), height());
-    QPoint center(width() / 2, height() / 2);
-    
-    // Desenhar Case Estática
-    QPixmap scaledCase = caseImage.scaled(side, side, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    painter.drawPixmap((width() - scaledCase.width()) / 2, 
-                      (height() - scaledCase.height()) / 2, 
-                      scaledCase);
-    
-    // Desenhar Knob Shaft
-    int knobSize = int(side * 0.65);
-    
-    // Mover para o centro
+
+    const int side = qMin(width(), height());
+    const QPoint center(width() / 2, height() / 2);
+
+    // Desenha a case
+    const QPixmap scaledCase = caseImage.scaled(side, side, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    const QPoint topLeft((width() - scaledCase.width()) / 2, (height() - scaledCase.height()) / 2);
+    painter.drawPixmap(topLeft, scaledCase);
+
+    // Desenha a shaft
     painter.translate(center);
-    
-    // Calcular ângulo
-    qreal angle = -135.0 + 270.0 * (value() - minimum()) / (maximum() - minimum());
-    
-    // Rotacionar sistema de coordenada
+
+    const qreal angle = -135.0 + 270.0 * (value() - minimum()) / (maximum() - minimum());
     painter.rotate(angle);
-    
-    // Desenhar Imagem Knob Rotacionada com tamanho menor
-    QPixmap scaled = knobImage.scaled(knobSize, knobSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    painter.drawPixmap(-scaled.width() / 2, -scaled.height() / 2, scaled);
+
+    const int knobSize = int(side * 0.65);
+    const QPixmap scaledKnob = knobImage.scaled(knobSize, knobSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    painter.drawPixmap(-scaledKnob.width() / 2, -scaledKnob.height() / 2, scaledKnob);
 }

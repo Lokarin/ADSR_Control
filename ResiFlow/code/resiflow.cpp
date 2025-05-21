@@ -1,47 +1,36 @@
 #include "resiflow.h"
-#include "ui_resiflow.h"
-#include "customknob.h"
 
-ResiFlow::ResiFlow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::ResiFlow)
+QT_USE_NAMESPACE
+
+ResiFlow::ResiFlow(QWidget *parent)
+    : QMainWindow(parent)
 {
-    ui->setupUi(this);
+    // Wid central
+    QWidget * central = new QWidget(this);
+    setCentralWidget(central);
 
-    // Nome das Labels
-    QStringList knobNames = {"Attack", "Decay", "Sustain", "Release"};
+    // Layout vertical
+    QVBoxLayout * layoutMain = new QVBoxLayout(central);
 
-    QHBoxLayout *mainLayout = qobject_cast<QHBoxLayout*>(ui->knobPlaceholder->layout());
+    // Criar um botao
+    QPushButton * botao = new QPushButton("Clique aqui", central);
+    botao->setGeometry(50,50,200,40);
+    layoutMain->addWidget(botao);
 
-    for (const QString &name : knobNames) {
-        // Layout vertical para cada conjunto label+knob
-        QVBoxLayout *knobLayout = new QVBoxLayout();
+    // Cria widget do grafico
+    ChartWidget * chart = new ChartWidget;
+    layoutMain->addWidget(chart);
 
-        QLabel *label = new QLabel(name, this);
-        label->setAlignment(Qt::AlignCenter);
-
-        CustomKnob *knob = new CustomKnob(this);
-        knob->setMinimum(0);
-        knob->setMaximum(100);
+    // Criar tray de quatro knobs
+    QHBoxLayout * knobTray = new QHBoxLayout();
+    for (int i = 0; i < 4; ++i) {
+        CustomKnob * knob = new CustomKnob();
+        //knob->setFixedSize(200,200);
+        //knobTray->addWidget(knob);
         knob->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        qDebug() << "Knob size:" << knob->size();
-
-        connect(knob, &QDial::valueChanged, this, [=](int value){
-            label->setText(QString("%1: %2").arg(name).arg(value));
-        });
-
-        // Adiciona primeiro o knob e depois a label
-        knobLayout->addWidget(knob);
-        knobLayout->addWidget(label);
-
-        QWidget *container = new QWidget(this);
-        container->setLayout(knobLayout);
-
-        mainLayout->addWidget(container);
+        knobTray->addWidget(knob, 0);
     }
+    layoutMain->addLayout(knobTray);
 }
 
-ResiFlow::~ResiFlow()
-{
-    delete ui;
-}
+ResiFlow::~ResiFlow() = default;

@@ -2,13 +2,13 @@
 #define RESIFLOW_H
 
 #include <QMainWindow>
-#include "customknob.h"
+#include <QWidget>
+#include <QPushButton>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
 
-QT_BEGIN_NAMESPACE
-namespace Ui {
-class ResiFlow;
-}
-QT_END_NAMESPACE
+#include "chartwidget.h"
+#include "customknob.h"
 
 class ResiFlow : public QMainWindow
 {
@@ -17,9 +17,5 @@ class ResiFlow : public QMainWindow
 public:
     ResiFlow(QWidget *parent = nullptr);
     ~ResiFlow();
-
-private:
-    Ui::ResiFlow *ui;
-    CustomKnob *attackKnob;
 };
 #endif // RESIFLOW_H
