@@ -9,28 +9,72 @@ ResiFlow::ResiFlow(QWidget *parent)
     QWidget * central = new QWidget(this);
     setCentralWidget(central);
 
-    // Layout vertical
-    QVBoxLayout * layoutMain = new QVBoxLayout(central);
+    // Layout Principal Horizontal
+    QHBoxLayout * layoutMain = new QHBoxLayout(central);
 
-    // Criar um botao
-    QPushButton * botao = new QPushButton("Clique aqui", central);
-    botao->setGeometry(50,50,200,40);
-    layoutMain->addWidget(botao);
+    // Wid da esquerda
+    QWidget * esquerda = new QWidget(central);
+    layoutMain->addWidget(esquerda);
+
+    // Wid da direita
+    QWidget * direita = new QWidget(central);
+    layoutMain->addWidget(direita);
+
+    // Layout Vertical no Wid da esquerda
+    QVBoxLayout * layoutMainEsquerda = new QVBoxLayout();
+    layoutMainEsquerda->setAlignment(Qt::AlignTop);
+    esquerda->setLayout(layoutMainEsquerda);
+
+    // Layout Vertical no Wid da direita
+    QVBoxLayout * layoutMainDireita = new QVBoxLayout();
+    layoutMainDireita->setAlignment(Qt::AlignTop);
+    direita->setLayout(layoutMainDireita);
+
+    // Criar um botao na esquerda
+    QPushButton * botao = new QPushButton("Botao na Esquerda");
+    //botao->setGeometry(50,50,200,40);
+    layoutMainEsquerda->addWidget(botao);
+
+    // Criar um botao na direita
+    QPushButton * botao1 = new QPushButton("Botao na Direita");
+    layoutMainDireita->addWidget(botao1);
 
     // Cria widget do grafico
     ChartWidget * chart = new ChartWidget;
-    layoutMain->addWidget(chart);
+    layoutMainEsquerda->addWidget(chart);
 
     // Criar tray de quatro knobs
-    QHBoxLayout * knobTray = new QHBoxLayout();
-    for (int i = 0; i < 4; ++i) {
+    QWidget * trayContainer = new QWidget(esquerda);
+    trayContainer->setMaximumHeight(200);
+    QHBoxLayout * knobTray = new QHBoxLayout(trayContainer);
+
+    QStringList knobNames = {"Attack", "Decay/Release", "Sustain", "Hold"};
+    for (const QString &name : knobNames) {
+        // Layout vertical para cada set de knobs+txt
+        QWidget * knobTextContainer = new QWidget();
+        QVBoxLayout * textKnobLayout = new QVBoxLayout(knobTextContainer);
+
+        // Cria um knob
         CustomKnob * knob = new CustomKnob();
         //knob->setFixedSize(200,200);
         //knobTray->addWidget(knob);
         knob->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        knobTray->addWidget(knob, 0);
+
+        // Cria o texto do knob
+        QString textLabel = name+": "+QString::number(0);
+        QLabel * label = new QLabel(textLabel);
+        label->setAlignment(Qt::AlignCenter);
+
+        connect(knob, &QDial::valueChanged, this, [=](int value){
+            label->setText(QString("%1: %2").arg(name).arg(value));
+        });
+        
+        textKnobLayout->addWidget(knob);
+        textKnobLayout->addWidget(label);
+
+        knobTray->addWidget(knobTextContainer);
     }
-    layoutMain->addLayout(knobTray);
+    layoutMainEsquerda->addWidget(trayContainer);
 }
 
 ResiFlow::~ResiFlow() = default;
