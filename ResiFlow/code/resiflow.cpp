@@ -42,6 +42,10 @@ ResiFlow::ResiFlow(QWidget *parent)
     QPushButton * botao1 = new QPushButton("Botao na Direita");
     layoutMainDireita->addWidget(botao1);
 
+    // Criar um botao na direita 2
+    QPushButton * botao2 = new QPushButton("Botao na Direita Dois");
+    layoutMainDireita->addWidget(botao2);
+
     // Cria widget do grafico
     ChartWidget * chart = new ChartWidget;
     layoutMainEsquerda->addWidget(chart);
