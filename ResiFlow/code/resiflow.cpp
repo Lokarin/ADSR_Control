@@ -8,16 +8,19 @@ ResiFlow::ResiFlow(QWidget *parent)
     // Wid central
     QWidget * central = new QWidget(this);
     setCentralWidget(central);
+    central->setMinimumHeight(700);
 
     // Layout Principal Horizontal
     QHBoxLayout * layoutMain = new QHBoxLayout(central);
 
     // Wid da esquerda
     QWidget * esquerda = new QWidget(central);
+    esquerda->setMinimumWidth(500);
     layoutMain->addWidget(esquerda);
 
     // Wid da direita
     QWidget * direita = new QWidget(central);
+    direita->setMinimumWidth(600);
     layoutMain->addWidget(direita);
 
     // Layout Vertical no Wid da esquerda
@@ -45,7 +48,7 @@ ResiFlow::ResiFlow(QWidget *parent)
 
     // Criar tray de quatro knobs
     QWidget * trayContainer = new QWidget(esquerda);
-    trayContainer->setMaximumHeight(200);
+    trayContainer->setMaximumHeight(300);
     QHBoxLayout * knobTray = new QHBoxLayout(trayContainer);
 
     QStringList knobNames = {"Attack", "Decay/Release", "Sustain", "Hold"};
