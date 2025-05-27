@@ -15,6 +15,9 @@ class ChartWidget : public QChartView {
 public:
     ChartWidget(QWidget *parent = nullptr);
     ~ChartWidget();
+
+private:
+    void attackCalculation(float maxTime, int resistencia);
 };
 
 #endif // CHARTWIDGET_H

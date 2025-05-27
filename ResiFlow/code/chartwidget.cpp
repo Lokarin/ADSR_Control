@@ -37,4 +37,8 @@ ChartWidget::ChartWidget(QWidget *parent)
     setRenderHint(QPainter::Antialiasing);
 }
 
+void attackCalculation(float maxTime, int resistencia) {
+
+}
+
 ChartWidget::~ChartWidget() = default;
