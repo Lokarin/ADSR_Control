@@ -83,30 +83,53 @@ int main() {
 #endif
 
     while (true) {
-        int atkSteps, susSteps, holdSteps, decRelSteps;
-        //int atkDir, susDir, holdDir, decRelDir;
+        int atkSteps, susSteps, holdSteps, decRelSteps, triggerFrequency, vcaInputFrequency;
 
-        //cout << "Attack - direcao (1=up, 0=down): "; cin >> atkDir;
-        cout << "Attack - passos (0-100): ";         cin >> atkSteps;
+        cout << "Attack - passos (0-100): ";                 cin >> atkSteps;
 
-        //cout << "Hold - direcao (1=up, 0=down): ";   cin >> holdDir;
-        cout << "Hold - passos (0-100): ";           cin >> holdSteps;
+        cout << "Hold - passos (0-100): ";                   cin >> holdSteps;
 
-        //cout << "Sustain - direcao (1=up, 0=down): "; cin >> susDir;
-        cout << "Sustain - passos (0-100): ";         cin >> susSteps;
+        cout << "Sustain - passos (0-100): ";                cin >> susSteps;
 
-        //cout << "Decay/Release - direcao (1=up, 0=down): "; cin >> decRelDir;
-        cout << "Decay/Release - passos (0-100): ";         cin >> decRelSteps;
+        cout << "Decay/Release - passos (0-100): ";          cin >> decRelSteps;
 
-        //byte opcodeAtk     = (atkDir << 7) | (atkSteps & 0x7F);
-        //byte opcodeHold    = (holdDir << 7) | (holdSteps & 0x7F);
-        //byte opcodeSustain = (susDir << 7) | (susSteps & 0x7F);
-        //byte opcodeDecRel  = (decRelDir << 7) | (decRelSteps & 0x7F);
-        byte Atk     = (atkSteps & 0x7F);
-        byte Hold    = (holdSteps & 0x7F);
-        byte Sustain = (susSteps & 0x7F);
-        byte DecRel  = (decRelSteps & 0x7F);
-        byte passos[4]    = { Atk, Hold, Sustain, DecRel };
+        cout << "Trigger frequency (1Hz, 3Hz): ";            cin >> triggerFrequency;
+
+        cout << "VCA sign in frequency (200Hz, 1000Hz): ";   cin >> vcaInputFrequency;
+
+        switch (triggerFrequency)
+        {
+        case 1:
+            triggerFrequency = 0;
+            break;
+        case 3:
+            triggerFrequency = 1;
+            break;
+        default:
+            triggerFrequency = 0;
+            break;
+        }
+
+        switch (vcaInputFrequency)
+        {
+        case 200:
+            vcaInputFrequency = 0;
+            break;
+        case 1000:
+            vcaInputFrequency = 1;
+            break;
+        default:
+            vcaInputFrequency = 0;
+            break;
+        }
+
+        byte Atk       = (atkSteps & 0x7F);
+        byte Hold      = (holdSteps & 0x7F);
+        byte Sustain   = (susSteps & 0x7F);
+        byte DecRel    = (decRelSteps & 0x7F);
+        byte Trigger   = (triggerFrequency & 0x7F);
+        byte VcaInput = (vcaInputFrequency & 0x7F);
+        byte passos[6] = {Atk, Hold, Sustain, DecRel, Trigger, VcaInput};
 
 #ifdef _WIN32
         DWORD bytesWritten;
@@ -118,6 +141,8 @@ int main() {
                  << ", HOLD=0x" << (int)Hold
                  << ", SUS=0x" << (int)Sustain
                  << ", DEC/REL=0x" << (int)DecRel
+                 << ", TRIG_FREQ=0x" << (int)Trigger
+                 << ", VCA_FREQ=0x" << (int)VcaInput
                  << " (" << dec << bytesWritten << " bytes)" << endl;
         }
 #else
@@ -130,6 +155,8 @@ int main() {
                  << ", HOLD=0x" << (int)Hold
                  << ", SUS=0x" << (int)Sustain
                  << ", DEC/REL=0x" << (int)DecRel
+                 << ", TRIG=0x" << (int)Trigger
+                 << ", VCA=0x" << (int)VcaInput
                  << " (" << dec << bytesWritten << " bytes)" << endl;
         }
 #endif
@@ -140,7 +167,6 @@ int main() {
 #else
     close(serialPort);
 #endif
-
     return 0;
 }
 

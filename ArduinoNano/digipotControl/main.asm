@@ -3,7 +3,7 @@
 ; File:     main.asm
 ; Author:   Gabriel Garcia; Henrique Onuki
 ; Created:  2025-04-19
-; Modified: 2025-05-16
+; Modified: 2025-05-28
 ; Version:  1.h
 ; Notes:    Controle de Digipots. Fcpu = 16 MHz.
 ; ------------------------------------------------------------------------------
@@ -16,15 +16,17 @@
 ; ------------------------------------------------------------------------------
 ; Register definitions
 ; ------------------------------------------------------------------------------
-.def    auxReg                      = R16
-.def    digiPotSelectorReg          = R17
-.def    BytesLeft                   = R21
-.def    loopReg                     = R22
-.def    byteRecebido                = R0
-.def    byteAttackReg               = R1
-.def    byteHoldReg                 = R2
-.def    byteDecayAndReleaseReg      = R3
-.def    byteSustainReg              = R4
+.def   tempReg                     = R16
+.def   digiPotSelectorReg          = R17
+.def   counterBytesLeft            = R21
+.def   loopReg                     = R22
+.def   timer0FreqByte              = R23
+.def   timer2FreqByte              = R24
+.def   receivedByte                = R0
+.def   attackByte                  = R1
+.def   holdByte                    = R2
+.def   decayAndReleaseByte         = R3
+.def   sustainByte                 = R4
 
 ; ------------------------------------------------------------------------------
 ; Interrupt vectors
@@ -88,229 +90,299 @@
 ; ------------------------------------------------------------------------------
 main:
 
-TIMER0_delay1us_init:
+; =====================[ INIT: Timer0 para delay de 1us ]======================
 
-    ;configura Timer0 para modo CTC, prescaler 8
-    LDI auxReg, (1 << WGM01) | (1 << COM0A0)            ;CTC Mode (WGM01=1, WGM00=0)
-    OUT TCCR0A, auxReg
+init_timer0_delay_us:
 
-    LDI auxReg, (1 << CS01)             ;prescaler = 8
-    OUT TCCR0B, auxReg
+    ; Modo CTC + prescaler 8
+    LDI tempReg, (1 << WGM01)
+    OUT TCCR0A, tempReg
 
-    ;define OCR0A = 1 -> conta de 0 até 1 = 2 ticks = 1 µs
-    LDI auxReg, 1
-    OUT OCR0A, auxReg
+    LDI tempReg, (1 << CS01)
+    OUT TCCR0B, tempReg
 
-TIMER1_wave_form_init:
+    LDI tempReg, 1
+    OUT OCR0A, tempReg
 
-    ;configura PB1 como saída
+; ===================[ INIT: Timer1 como trigger do ADSR ]=====================
+
+init_timer1_adsr_trigger:
+
+    ; PB1 como saída
     SBI DDRB, PB1
 
-    ;ativa toggle (inversão) no pino OC1A (PB1) ao atingir OCR1A
-    LDI auxReg, (1<<COM1A0)
-    STS TCCR1A, auxReg
+    ; OC1A (PB1) como toggle
+    LDI tempReg, (1<<COM1A0)
+    STS TCCR1A, tempReg
 
-    ;modo CTC (WGM12) + prescaler 256 (CS12)
-    LDI auxReg, (1<<WGM12) | (1<<CS12)
-    STS TCCR1B, auxReg
+    ; Modo CTC + prescaler 256
+    LDI tempReg, (1<<CS12) | (1<<WGM12)
+    STS TCCR1B, tempReg
 
-    LDI auxReg, high(10416)
-    STS OCR1AH, auxReg
+    ; Inicialização padrão com 3Hz
+    LDI tempReg, high(10416)
+    STS OCR1AH, tempReg
 
-    LDI auxReg, low(10416)
-    STS OCR1AL, auxReg
+    LDI tempReg, low(10416)
+    STS OCR1AL, tempReg
 
-USART_init:
+; ====================[ INIT: Timer2 como input do VCA ]=======================
 
-    ;inicializa a USART (UBRR0 = 103 para 9600 bps)
-    LDI auxReg, high(103)
-    STS UBRR0H, auxReg
-    LDI auxReg, low(103)
-    STS UBRR0L, auxReg
+init_timer2_vca_input:
 
-    ;configura USART: 8 bits, 1 stop, sem paridade
-    LDI auxReg, (1 << UCSZ01) | (1 << UCSZ00)
-    STS UCSR0C, auxReg
+    ; PB3 como saída
+    SBI DDRB, PB3
 
-    ;habilita RX
-    LDI auxReg, (1 << RXEN0)
-    STS UCSR0B, auxReg
+    ; OC1A (PB3) como toggle
+    LDI tempReg, (1<<COM2A0) | (1<<WGM21)
+    STS TCCR2A, tempReg
+
+    ; Modo CTC + prescaler 256
+    LDI tempReg, (1<<CS22) | (1<<CS21)
+    STS TCCR2B, tempReg
+
+    ; Inicialização padrão com 1kHz
+    LDI tempReg, 31
+    STS OCR2A, tempReg
+
+; ==========================[ INIT: USART 9600 bps ]===========================
+
+init_usart:
+
+    LDI tempReg, high(103)
+    STS UBRR0H, tempReg
+    LDI tempReg, low(103)
+    STS UBRR0L, tempReg
+
+    ; 8 bits, 1 stop, sem paridade
+    LDI tempReg, (1 << UCSZ01) | (1 << UCSZ00)
+    STS UCSR0C, tempReg
+
+    ; Habilita pino RX (PD0)
+    LDI tempReg, (1 << RXEN0)
+    STS UCSR0B, tempReg
+
+; =====================[ INIT: Configurações das portas D ]====================
 
 main_start:
+init_ports:
 
-    LDI   auxReg, 0xFF
-    OUT   DDRD, auxReg ;habilita todas as portas D como saida
+    LDI tempReg, 0xFF
+    OUT DDRD, tempReg                           ; Habilita todas as portas D como saída
+
+; =====================[ LOOP: loop principal do programa ]====================
 
 main_loop:
 
-    LDI   digiPotSelectorReg, 0b10000000 ;PD7, PD6, PD5, PD4 = habilita o Chip Select dos digipots
-    LDI   BytesLeft, 0b00000100 ;quando BytesLeft alcancar 0 o codigo retorna para main_loop
+    LDI digiPotSelectorReg, 0b10000000          ; PD7, PD6, PD5, PD4 = habilita o Chip Select dos digipots
+    LDI counterBytesLeft, 0b00000100            ; Quando counterBytesLeft alcançar 0 o código retorna para main_loop
 
-    LDI   auxReg, 0b11110000 ;
-    OUT   PORTD, auxReg ;inicia todas as saidas com 0V com excessao de PD7, PD6, PD5, PD4 (Chip Select)
+    LDI tempReg, 0b11110000
+    OUT PORTD, tempReg                          ; Inicia todas as saídas com 0V menos PD7, PD6, PD5, PD4 (Chip Select)
 
+; ==================[ USART: recepção de bytes ]===============================
 
-wait_for_4_byes:
+read_adsr_and_timer_bytes:
 
-    RCALL recebe4Bytes
+    RCALL usart_receive_byte
+    MOV   attackByte, tempReg
 
-resistance_reset:
-    ;seta todos os potenciômetros para começarem na mesma resistencia (0 ohm) após
-    ;receber 4 bytes
+    RCALL usart_receive_byte
+    MOV   holdByte, tempReg
 
-    LDI   auxReg, 0b00001000 ;ativa todos CS(chip select) e seta a resistencia para baixo(down)
-    OUT   PORTD, auxReg
+    RCALL usart_receive_byte
+    MOV   sustainByte, tempReg
 
-    LDI   loopReg, 0b1101001 ;carrega loopReg com 105 (garante que haverá mais que 100 ciclos)
+    RCALL usart_receive_byte
+    MOV   decayAndReleaseByte, tempReg
 
-resistance_reset_loop:
+    RCALL usart_receive_byte
+    MOV   timer0FreqByte, tempReg
 
-    ORI   auxReg, 0b00000100 ;borda de subida
-    OUT   PORTD, auxReg
+    RCALL usart_receive_byte
+    MOV   timer2FreqByte, tempReg
+
+; ===============[ ADSR_CTRL: Ajuste de frequência do trigger ]================
+
+set_adsr_trigger_freq:
+
+    CPI  timer0FreqByte, 0x0
+    BREQ set_trigger_1hz
+
+    CPI  timer0FreqByte, 0x1
+    BREQ set_trigger_3hz
+
+set_trigger_1hz:
+
+    LDI  tempReg, high(31249)
+    STS  OCR1AH, tempReg
+
+    LDI  tempReg, low(31249)
+    STS  OCR1AL, tempReg
+
+    RJMP set_vca_input_freq
+
+set_trigger_3hz:
+
+    LDI  tempReg, high(10416)
+    STS  OCR1AH, tempReg
+
+    LDI  tempReg, low(10416)
+    STS  OCR1AL, tempReg
+
+    RJMP set_vca_input_freq
+
+; =============[ VCA_CTRL: Ajuste de frequência de entrada ]===================
+
+set_vca_input_freq:
+
+    CPI  timer2FreqByte, 0x0
+    BREQ set_vca_200hz
+
+    CPI  timer2FreqByte, 0x1
+    BREQ set_vca_1khz
+
+set_vca_200hz:
+
+    LDI  tempReg, 155
+    STS  OCR2A, tempReg
+
+    RJMP reset_all_digipots
+
+set_vca_1khz:
+
+    LDI  tempReg, 31
+    STS  OCR2A, tempReg
+
+    RJMP reset_all_digipots
+
+; =================[ DIGIPOTS: zera todos os potenciômetros ]==================
+
+reset_all_digipots:
+    ; Seta todos os potenciômetros para começarem do valor mais baixo
+    ; de resistência após receber os bytes correspondentes a cada fase
+
+    LDI tempReg, 0b00001000             ; Ativa todos CS(chip select) e seta a resistência para baixo(down)
+    OUT PORTD, tempReg
+
+    LDI loopReg, 0b1101001              ; Carrega loopReg com 105 (garante que haverá mais que 100 ciclos)
+
+digipot_reset_loop:
+
+    ORI   tempReg, 0b00000100           ; Borda de subida
+    OUT   PORTD, tempReg
     ;RCALL delay100
-    RCALL delay1us
+    RCALL delay_1us
 
-    ANDI  auxReg, 0b11111011 ;borda de descida
-    OUT   PORTD, auxReg
+    ANDI  tempReg, 0b11111011           ; Borda de descida
+    OUT   PORTD, tempReg
     ;RCALL delay100
-    RCALL delay1us
+    RCALL delay_1us
 
-    DEC   loopReg ;Quando loopReg for zerado o reset dos potenciometros esta completo
-    BREQ load_first_byte
+    DEC   loopReg                       ; Quando loopReg for zerado o reset dos potenciômetros está completo
+    BREQ  load_first_phase_byte
 
-    RJMP  resistance_reset_loop;
+    RJMP  digipot_reset_loop
 
-load_first_byte:
+; ===============[ DIGIPOTS: Atualiza valores dos digipots ]==================
 
-    MOV   auxReg, byteAttackReg ;o byte da fase de attack e carregado primeiro
+load_first_phase_byte:
 
-up_resistance_start:
+    MOV   tempReg, attackByte                   ; O byte da fase de attack é carregado primeiro
 
-    DEC  BytesLeft ;decrementa opBytesLeft em 1
+digipot_step_up_start:
 
-    MOV  loopReg, auxReg
-    CPI  loopReg, 0x0 ;se loop = 0, entao pula direto para o proximo opcode
-    BREQ next_byte_continue
+    DEC   counterBytesLeft                      ; Decrementa opcounterBytesLeft em 1
 
-    LDI  auxReg, 0b00000000 ;PD3(digipots up/down pin) habilita o digipot para comecar em up
-    ORI  digiPotSelectorReg, 0b00001111 ;prepara digiPotSelectorReg para ser invertido(ativo em low)
-    COM  digiPotSelectorReg
-    OR   auxReg, digiPotSelectorReg
-    OUT  PORTD, auxReg
+    MOV   loopReg, tempReg
+    CPI   loopReg, 0x0                          ; Se loop = 0 jump para o próximo byte
+    BREQ  prepare_next_phase
 
-    ;RCALL delay500
-    ;RCALL delay1us
-
-up_resistance_loop:
-    ;ativa e desativa o PD2(digipots CLK) enquanto o numero de steps(ou loops) armazenados em loopReg e != 0
-
-    ORI  auxReg, 0b00000100 ;borda de subida
-    OUT  PORTD, auxReg
+    LDI   tempReg, 0b00000000                   ; PD3(digipots up/down pino) habilita o digipot para começar em up
+    ORI   digiPotSelectorReg, 0b00001111        ; Prepara digiPotSelectorReg para ser invertido(ativo em low)
+    COM   digiPotSelectorReg
+    OR    tempReg, digiPotSelectorReg
+    OUT   PORTD, tempReg
 
     ;RCALL delay500
-    RCALL delay1us
+    RCALL delay_1us
 
-    ANDI auxReg, 0b11111011 ;borda de descida
-    OUT  PORTD, auxReg
+digipot_step_up_loop:
+
+    ; Ativa e desativa o PD2(digipots CLK) enquanto o número de steps(ou loops) armazenados em loopReg e != 0
+    ORI   tempReg, 0b00000100           ; Borda de subida
+    OUT   PORTD, tempReg
 
     ;RCALL delay500
-    RCALL delay1us
+    RCALL delay_1us
 
-    DEC  loopReg
-    BREQ next_byte ;se loop foi finalizado pula para o proxima fase do ADSR
+    ANDI  tempReg, 0b11111011           ; Borda de descida
+    OUT   PORTD, tempReg
 
-    RJMP up_resistance_loop ;caso o loop nao tenha acabado retorna para o comeco dele
+    ;RCALL delay500
+    RCALL delay_1us
 
-next_byte:
+    DEC   loopReg
+    BREQ  next_adsr_phase               ; Se loop foi finalizado jump para a próxima fase do ADSR
 
-    ;restaura digiPotSelectorReg para a forma binaria original
+    RJMP  digipot_step_up_loop          ; Caso o loop nao tenha acabado retorna para o começo dele
+
+; =============[ BYTE_LOAD: Carrega byte da próxima fase do ADSR ]=============
+
+next_adsr_phase:
+
+    ; Restaura digiPotSelectorReg para a forma binária original
     ORI digiPotSelectorReg, 0b00001111
     COM digiPotSelectorReg
 
-next_byte_continue:
+prepare_next_phase:
 
-    ;ativa o proximo digipot
+    ; Ativa o próximo digipot
     LSR  digiPotSelectorReg
 
-    ;se BytesLeft == 0 jump para "fim" label
-    CPI  BytesLeft, 0b00000000
+    ; Se counterBytesLeft == 0 jump para "fim" label
+    CPI  counterBytesLeft, 0b00000000
     BREQ fim
 
-    ;se BytesLeft == 3 jump para byte_hold label
-    CPI  BytesLeft, 0b00000011
-    BREQ byte_hold
+    ; Se counterBytesLeft == 3 jump para load_hold_byte label
+    CPI  counterBytesLeft, 0b00000011
+    BREQ load_hold_byte
 
-    ;se BytesLeft == 2 jump para byte_sustain label
-    ;se BytesLeft != 2 codigo continua
-    CPI  BytesLeft, 0b00000010
-    BREQ byte_sustain
+    ; Se counterBytesLeft == 2 jump para load_sustain_byte label
+    ; Se counterBytesLeft != 2 código continua
+    CPI  counterBytesLeft, 0b00000010
+    BREQ load_sustain_byte
 
-byte_decay_and_release:
+load_decay_release_byte:
 
-    ;carrega byteDecayAndReleaseReg para auxReg e reinicia o codigo em up_resistance_start
-    MOV  auxReg, byteDecayAndReleaseReg
-    RJMP up_resistance_start
+    ; Carrega decayAndReleaseByte para tempReg e reinicia o código em digipot_step_up_start
+    MOV  tempReg, decayAndReleaseByte
+    RJMP digipot_step_up_start
 
-byte_hold:
+load_hold_byte:
 
-    ;carrega byteSustainReg para auxReg e reinicia o codigo em up_resistance_start
-    MOV  auxReg, byteHoldReg
-    RJMP up_resistance_start
+    ; Carrega sustainByte para tempReg e reinicia o código em digipot_step_up_start
+    MOV  tempReg, holdByte
+    RJMP digipot_step_up_start
 
-byte_sustain:
+load_sustain_byte:
 
-    ;carrega byteSustainReg para auxReg e reinicia o codigo em up_resistance_start
-    MOV  auxReg, byteSustainReg
-    RJMP up_resistance_start
+    ; Carrega sustainByte para tempReg e reinicia o código em digipot_step_up_start
+    MOV  tempReg, sustainByte
+    RJMP digipot_step_up_start
 
 fim:
 
     RJMP main_loop
 
-; =================================================
-; Sub-rotina: espera e le 4 bytes da interface USART
-; =================================================
-recebe4Bytes:
-recebeByte1:
+; ======================[ SUB ROTINA: Espera e lê byte ]=======================
 
-    ;Byte1
-    LDS  auxReg, UCSR0A
-    SBRS auxReg, RXC0
-    RJMP recebeByte1
-
-    LDS  byteRecebido, UDR0
-    MOV  byteAttackReg, byteRecebido
-
-recebeByte2:
-
-    ;Byte2
-    LDS  auxReg, UCSR0A
-    SBRS auxReg, RXC0
-    RJMP recebeByte2
-
-    LDS  byteRecebido, UDR0
-    MOV  byteHoldReg, byteRecebido
-
-recebeByte3:
-
-    ;Byte3
-    LDS  auxReg, UCSR0A
-    SBRS auxReg, RXC0
-    RJMP recebeByte3
-
-    LDS  byteRecebido, UDR0
-    MOV  byteSustainReg, byteRecebido
-
-recebeByte4:
-
-    ;Byte4
-    LDS  auxReg, UCSR0A
-    SBRS auxReg, RXC0
-    RJMP recebeByte4
-
-    LDS  byteRecebido, UDR0
-    MOV  byteDecayAndReleaseReg, byteRecebido
-
+usart_receive_byte:
+USART_read:
+    LDS  tempReg, UCSR0A
+    SBRS tempReg, RXC0
+    RJMP USART_read
+    LDS  tempReg, UDR0
     RET
 
 ; ------------------------------------------------------------------------------
@@ -331,19 +403,22 @@ delay100Loop:
     RJMP    PC + 1
     RET
 
-delay1us:
+delay_1us:
+
     ;zera contador TCNT0
     CLR R18
     OUT TCNT0, R18
 
-delay1us_polling:
-    IN R18, TIFR0
-    SBRS R18, OCF0A;espera OCF0A == 1
-    RJMP delay1us_polling
+delay_1us_polling:
+
+    ;espera OCF0A == 1
+    IN   R18, TIFR0
+    SBRS R18, OCF0A
+    RJMP delay_1us_polling
 
     ;limpa a flag de compare A (escreve 1 para limpar)
-    LDI R18, (1 << OCF0A)
-    OUT TIFR0, R18
+    LDI  R18, (1 << OCF0A)
+    OUT  TIFR0, R18
 
     RET
 
