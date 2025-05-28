@@ -35,28 +35,15 @@ ResiFlow::ResiFlow(QWidget *parent)
 
     // Criar um botao na esquerda
     QPushButton * botao = new QPushButton("Botao na Esquerda");
-    //botao->setGeometry(50,50,200,40);
-    layoutMainEsquerda->addWidget(botao);
-    connect(botao, &QPushButton::clicked, this, [=]() {
-           int A = (knobs["Attack"]->value()*100)+1;
-           int DR = (knobs["Decay/Release"]->value()*100)+1;
-           int S = (knobs["Sustain"]->value()*100)+1;
-           int H = (knobs["Hold"]->value()*100)+1;
-
-           this->chart->updateChart(A, H, DR, S, 60, 5); 
-    });
 
     // Criar um botao na direita
     QPushButton * botao1 = new QPushButton("Botao na Direita");
-    layoutMainDireita->addWidget(botao1);
 
     // Criar um botao na direita 2
     QPushButton * botao2 = new QPushButton("Botao na Direita Dois");
-    layoutMainDireita->addWidget(botao2);
 
     // Cria widget do grafico
     chart = new ChartWidget;
-    layoutMainEsquerda->addWidget(chart);
 
     // Criar tray de quatro knobs
     QWidget * trayContainer = new QWidget(esquerda);
@@ -90,29 +77,45 @@ ResiFlow::ResiFlow(QWidget *parent)
 
         knobTray->addWidget(knobTextContainer);
     }
-    layoutMainEsquerda->addWidget(trayContainer);
 
     // Slider para frequencia
-    QStringList freqLabels = {"60", "100", "120", "150", "180"};
+    QHBoxLayout * freqPicker = new QHBoxLayout();
+    this->freqLabels = {"60", "100", "120", "150", "180"};
     this->freqSlider = new QSlider(Qt::Horizontal);
-    this->freqSlider->setMinimum(1);
+    this->freqSlider->setMinimum(0);
     this->freqSlider->setMaximum(freqLabels.size() - 1);
     this->freqSlider->setTickInterval(1);
     this->freqSlider->setTickPosition(QSlider::TicksBelow);
+    freqLabel = new QLabel(QString("BPM: 60"));
 
-    //QHBoxLayout * freqLabelsLayout = new QHBoxLayout();
-    //for (const QString &frequencia : freqLabels) {
-    //    QLabel * freq = new QLabel(frequencia);
-    //    freq->setAlignment(Qt::AlignCenter);
-    //    freqLabelsLayout->addWidget(freq);
-    //}
-    //QWidget * containerFreqSlider = new QWidget(direita);
-    //QVBoxLayout * layoutContainerFreqSlider = new QVBoxLayout();
-    //containerFreqSlider->setLayout(layoutContainerFreqSlider);
-    //layoutContainerFreqSlider->addWidget(freqSlider);
-    //layoutContainerFreqSlider->addLayout(freqLabelsLayout);
-    //layoutMainDireita->addWidget(containerFreqSlider);
-    layoutMainDireita->addWidget(freqSlider);
+    freqPicker->addWidget(freqLabel);
+    freqPicker->addWidget(freqSlider);
+
+    // Adicionando as coisas aos layouts
+    layoutMainEsquerda->addWidget(botao);
+    layoutMainEsquerda->addWidget(chart);
+    layoutMainEsquerda->addWidget(trayContainer);
+
+    layoutMainDireita->addWidget(botao1);
+    layoutMainDireita->addWidget(botao2);
+    layoutMainDireita->addLayout(freqPicker);
+
+    connect(botao, &QPushButton::clicked, this, [=]() {
+           int A = (knobs["Attack"]->value()*100)+1;
+           int DR = (knobs["Decay/Release"]->value()*100)+1;
+           int S = (knobs["Sustain"]->value()*100)+1;
+           int H = (knobs["Hold"]->value()*100)+1;
+
+           int freqIndex = this->freqSlider->value();
+           int freqVal = this->freqLabels[freqIndex].toInt();
+
+           this->chart->updateChart(A, H, DR, S, freqVal, 5); 
+    });
+
+    connect(freqSlider, &QSlider::valueChanged, this, [=]() {
+           int freqIndex = this->freqSlider->value();
+           this->freqLabel->setText(QString("BPM: %1").arg(this->freqLabels[freqIndex]));
+    });
 }
 
 ResiFlow::~ResiFlow() = default;

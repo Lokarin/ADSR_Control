@@ -21,7 +21,10 @@ public:
     ~ResiFlow();
 private:
     QMap<QString, CustomKnob*> knobs;
-    QSlider * freqSlider;
     ChartWidget * chart;
+
+    QSlider * freqSlider;
+    QLabel * freqLabel;
+    QStringList freqLabels;
 };
 #endif // RESIFLOW_H

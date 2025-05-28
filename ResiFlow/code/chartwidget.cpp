@@ -54,6 +54,8 @@ ChartWidget::ChartWidget(QWidget *parent)
 }
 
 void ChartWidget::updateChart(int A, int H, int DR, int S, float freq, double maxVol) {
+    qDebug() << "\n" << "Frequencia: " << freq << "\n";
+
     this->attack = A;
     this->hold = H;
     this->decayRelease = DR;
