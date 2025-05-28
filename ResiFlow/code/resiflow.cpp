@@ -34,7 +34,7 @@ ResiFlow::ResiFlow(QWidget *parent)
     direita->setLayout(layoutMainDireita);
 
     // Criar um botao na esquerda
-    QPushButton * botao = new QPushButton("Botao na Esquerda");
+    QPushButton * botao = new QPushButton("Enviar Curva Atual");
 
     // Criar um botao na direita
     QPushButton * botao1 = new QPushButton("Botao na Direita");
@@ -61,15 +61,17 @@ ResiFlow::ResiFlow(QWidget *parent)
         //knob->setFixedSize(200,200);
         //knobTray->addWidget(knob);
         knob->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        knob->setValue(100);
 
         // Cria o texto do knob
-        QString textLabel = name+": "+QString::number(0);
+        QString textLabel = name+": "+QString::number(100);
         QLabel * label = new QLabel(textLabel);
         label->setAlignment(Qt::AlignCenter);
         knobs[name] = knob;
 
         connect(knob, &QDial::valueChanged, this, [=](int value){
             label->setText(QString("%1: %2").arg(name).arg(value));
+            this->getKnobValues();
         });
         
         textKnobLayout->addWidget(knob);
@@ -85,8 +87,9 @@ ResiFlow::ResiFlow(QWidget *parent)
     this->freqSlider->setMinimum(0);
     this->freqSlider->setMaximum(freqLabels.size() - 1);
     this->freqSlider->setTickInterval(1);
-    this->freqSlider->setTickPosition(QSlider::TicksBelow);
-    freqLabel = new QLabel(QString("BPM: 60"));
+    this->freqSlider->setTickPosition(QSlider::TicksBothSides);
+    this->freqSlider->setSliderPosition(4);
+    freqLabel = new QLabel(QString("BPM: 180"));
 
     freqPicker->addWidget(freqLabel);
     freqPicker->addWidget(freqSlider);
@@ -96,26 +99,32 @@ ResiFlow::ResiFlow(QWidget *parent)
     layoutMainEsquerda->addWidget(chart);
     layoutMainEsquerda->addWidget(trayContainer);
 
+    layoutMainDireita->addLayout(freqPicker);
     layoutMainDireita->addWidget(botao1);
     layoutMainDireita->addWidget(botao2);
-    layoutMainDireita->addLayout(freqPicker);
-
+    
+    // Connects
     connect(botao, &QPushButton::clicked, this, [=]() {
-           int A = (knobs["Attack"]->value()*100)+1;
-           int DR = (knobs["Decay/Release"]->value()*100)+1;
-           int S = (knobs["Sustain"]->value()*100)+1;
-           int H = (knobs["Hold"]->value()*100)+1;
-
-           int freqIndex = this->freqSlider->value();
-           int freqVal = this->freqLabels[freqIndex].toInt();
-
-           this->chart->updateChart(A, H, DR, S, freqVal, 5); 
+          this->chart->updatePontosReais(); 
     });
 
     connect(freqSlider, &QSlider::valueChanged, this, [=]() {
            int freqIndex = this->freqSlider->value();
            this->freqLabel->setText(QString("BPM: %1").arg(this->freqLabels[freqIndex]));
+           this->getKnobValues();
     });
+}
+
+void ResiFlow::getKnobValues(){
+            int A = (knobs["Attack"]->value()*100)+1;
+            int DR = (knobs["Decay/Release"]->value()*100)+1;
+            int S = (knobs["Sustain"]->value()*100)+1;
+            int H = (knobs["Hold"]->value()*100)+1;
+
+            int freqIndex = this->freqSlider->value();
+            int freqVal = this->freqLabels[freqIndex].toInt();
+
+            this->chart->updateChartSim(A, H, DR, S, freqVal, 5);
 }
 
 ResiFlow::~ResiFlow() = default;

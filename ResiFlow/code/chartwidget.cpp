@@ -3,7 +3,7 @@
 ChartWidget::ChartWidget(QWidget *parent)
     : QChartView(parent)
 {
-    this->maxVol = 4.18;
+    this->maxVol = 5;
     this->maxTime = 0.33;
 
     this->attack = 10000;
@@ -11,11 +11,15 @@ ChartWidget::ChartWidget(QWidget *parent)
     this->decayRelease = 10000;
     this->sustain = 10000;
 
-    // Cria a serie estilo Line
+    // Cria a serie de pontos, esses de enviados para o AHDSR
     this->pontos = new QLineSeries();
+
+    // Cria a serie de pontos, esses de pontos ainda somente simulados
+    this->pontosSimulados = new QLineSeries();
 
     // Cria o grafico
     this->chart = new QChart();
+    this->chart->addSeries(pontosSimulados);
     this->chart->addSeries(pontos);
     this->chart->legend()->hide();
     this->chart->setBackgroundBrush(QBrush(Qt::black));        
@@ -44,16 +48,18 @@ ChartWidget::ChartWidget(QWidget *parent)
     // Ajusta os pontos aos eixos
     this->pontos->attachAxis(yAxis);
     this->pontos->attachAxis(xAxis);
+    this->pontosSimulados->attachAxis(yAxis);
+    this->pontosSimulados->attachAxis(xAxis);
 
     
     // Seta o grafico a ser mostrado pelo chartwidget, no caso chart, criado em cima ali
     setRenderHint(QPainter::Antialiasing);
     setChart(chart);
 
-    this->updateChart(this->attack, this->hold, this->decayRelease, this->sustain, 180, this->maxVol);
+    this->updateChartSim(this->attack, this->hold, this->decayRelease, this->sustain, 180, this->maxVol);
 }
 
-void ChartWidget::updateChart(int A, int H, int DR, int S, float freq, double maxVol) {
+void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double maxVol) {
     qDebug() << "\n" << "Frequencia: " << freq << "\n";
 
     this->attack = A;
@@ -63,16 +69,26 @@ void ChartWidget::updateChart(int A, int H, int DR, int S, float freq, double ma
 
     this->maxTime = 1/(freq/60);
 
-    this->pontos->clear();
     this->xAxis->setRange(0, this->maxTime);
     this->yAxis->setRange(0, 1.1*maxVol);
+
+    this->pontosSimulados->clear();
+    QPen pen1(Qt::green);
+    pen1.setWidth(10);
+    this->pontosSimulados->setPen(pen1);
+
+    this->holdCalculation();
+    this->attackCalculation();
+}
+
+void ChartWidget::updatePontosReais(){
+    this->pontos->clear();
 
     QPen pen(Qt::red);
     pen.setWidth(6); 
     this->pontos->setPen(pen);
 
-    this->holdCalculation();
-    this->attackCalculation();
+    this->pontos->append(this->pontosSimulados->points());
 }
 
 void ChartWidget::holdCalculation(){
@@ -83,8 +99,9 @@ void ChartWidget::holdCalculation(){
     qDebug() << "HoldTime: " << this->holdTime << "\n";
 }
 
+
 void ChartWidget::attackCalculation() {
-    int numPontos = 20;
+    int numPontos = 50;
 
     qDebug() << "Resistencia Attack: " << this->attack << "\n";
     for (int i = 0; i < numPontos; ++i) {
@@ -95,7 +112,7 @@ void ChartWidget::attackCalculation() {
         double v = this->maxVol * (1.0 - exp(-t / (this->attack * 1e-6)));
 
         // Adiciona o ponto na série
-        this->pontos->append(t, v);
+        this->pontosSimulados->append(t, v);
     }
 }
 

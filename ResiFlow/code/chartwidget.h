@@ -16,13 +16,15 @@ class ChartWidget : public QChartView {
 public:
     ChartWidget(QWidget *parent = nullptr);
     ~ChartWidget();
-    void updateChart(int A, int H, int DR, int S, float freq, double maxVol);
+    void updateChartSim(int A, int H, int DR, int S, float freq, double maxVol);
+    void updatePontosReais();
 
 private:
     double holdTime, maxTime, maxVol;
     int attack, hold, decayRelease, sustain;
 
     QLineSeries * pontos;
+    QLineSeries * pontosSimulados;
     QChart * chart;
     QValueAxis * yAxis;
     QValueAxis * xAxis;

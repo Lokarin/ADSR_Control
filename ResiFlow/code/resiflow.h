@@ -26,5 +26,7 @@ private:
     QSlider * freqSlider;
     QLabel * freqLabel;
     QStringList freqLabels;
+
+    void getKnobValues();
 };
 #endif // RESIFLOW_H
