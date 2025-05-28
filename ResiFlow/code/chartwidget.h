@@ -16,11 +16,19 @@ class ChartWidget : public QChartView {
 public:
     ChartWidget(QWidget *parent = nullptr);
     ~ChartWidget();
+    void updateChart(int A, int H, int DR, int S);
 
 private:
     double holdTime, maxTime, maxVol;
-    void attackCalculation(double maxTime, int resistencia, double maxVol, QLineSeries *data);
-    void holdCalculation(int R);
+    int attack, hold, decayRelease, sustain;
+
+    QLineSeries * pontos;
+    QChart * chart;
+    QValueAxis * yAxis;
+    QValueAxis * xAxis;
+
+    void attackCalculation();
+    void holdCalculation();
 };
 
 #endif // CHARTWIDGET_H
