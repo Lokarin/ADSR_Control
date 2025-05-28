@@ -15,7 +15,7 @@ ResiFlow::ResiFlow(QWidget *parent)
 
     // Wid da esquerda
     QWidget * esquerda = new QWidget(central);
-    esquerda->setMinimumWidth(500);
+    esquerda->setMinimumWidth(800);
     layoutMain->addWidget(esquerda);
 
     // Wid da direita
@@ -44,6 +44,8 @@ ResiFlow::ResiFlow(QWidget *parent)
 
     // Cria widget do grafico
     chart = new ChartWidget;
+    QHBoxLayout * chartLayout = new QHBoxLayout();
+    chartLayout->addWidget(chart);
 
     // Criar tray de quatro knobs
     QWidget * trayContainer = new QWidget(esquerda);
@@ -81,25 +83,29 @@ ResiFlow::ResiFlow(QWidget *parent)
     }
 
     // Slider para frequencia
-    QHBoxLayout * freqPicker = new QHBoxLayout();
+    QVBoxLayout * freqPicker = new QVBoxLayout();
     this->freqLabels = {"60", "100", "120", "150", "180"};
-    this->freqSlider = new QSlider(Qt::Horizontal);
+    this->freqSlider = new QSlider(Qt::Vertical);
     this->freqSlider->setMinimum(0);
     this->freqSlider->setMaximum(freqLabels.size() - 1);
     this->freqSlider->setTickInterval(1);
     this->freqSlider->setTickPosition(QSlider::TicksBothSides);
     this->freqSlider->setSliderPosition(4);
     freqLabel = new QLabel(QString("BPM: 180"));
+    QFontMetrics fm(freqLabel->font());
+    int freqLabelW = fm.horizontalAdvance("BPM: 180");  // largura do maior valor
+    freqLabel->setMinimumWidth(freqLabelW);
 
-    freqPicker->addWidget(freqLabel);
-    freqPicker->addWidget(freqSlider);
+    freqPicker->addWidget(freqLabel, 0, Qt::AlignHCenter);
+    freqPicker->addWidget(freqSlider, 0, Qt::AlignHCenter);
 
     // Adicionando as coisas aos layouts
     layoutMainEsquerda->addWidget(botao);
-    layoutMainEsquerda->addWidget(chart);
+    chartLayout->addLayout(freqPicker);
+    layoutMainEsquerda->addLayout(chartLayout);
     layoutMainEsquerda->addWidget(trayContainer);
 
-    layoutMainDireita->addLayout(freqPicker);
+    //layoutMainDireita->addLayout(freqPicker);
     layoutMainDireita->addWidget(botao1);
     layoutMainDireita->addWidget(botao2);
     
