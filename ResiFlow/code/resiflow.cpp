@@ -37,6 +37,14 @@ ResiFlow::ResiFlow(QWidget *parent)
     QPushButton * botao = new QPushButton("Botao na Esquerda");
     //botao->setGeometry(50,50,200,40);
     layoutMainEsquerda->addWidget(botao);
+    connect(botao, &QPushButton::clicked, this, [=]() {
+           int A = (knobs["Attack"]->value()*100)+1;
+           int DR = (knobs["Decay/Release"]->value()*100)+1;
+           int S = (knobs["Sustain"]->value()*100)+1;
+           int H = (knobs["Hold"]->value()*100)+1;
+
+           this->chart->updateChart(A, H, DR, S, 60, 5); 
+    });
 
     // Criar um botao na direita
     QPushButton * botao1 = new QPushButton("Botao na Direita");
@@ -47,7 +55,7 @@ ResiFlow::ResiFlow(QWidget *parent)
     layoutMainDireita->addWidget(botao2);
 
     // Cria widget do grafico
-    ChartWidget * chart = new ChartWidget;
+    chart = new ChartWidget;
     layoutMainEsquerda->addWidget(chart);
 
     // Criar tray de quatro knobs
@@ -71,6 +79,7 @@ ResiFlow::ResiFlow(QWidget *parent)
         QString textLabel = name+": "+QString::number(0);
         QLabel * label = new QLabel(textLabel);
         label->setAlignment(Qt::AlignCenter);
+        knobs[name] = knob;
 
         connect(knob, &QDial::valueChanged, this, [=](int value){
             label->setText(QString("%1: %2").arg(name).arg(value));
@@ -82,6 +91,28 @@ ResiFlow::ResiFlow(QWidget *parent)
         knobTray->addWidget(knobTextContainer);
     }
     layoutMainEsquerda->addWidget(trayContainer);
+
+    // Slider para frequencia
+    QStringList freqLabels = {"60", "100", "120", "150", "180"};
+    this->freqSlider = new QSlider(Qt::Horizontal);
+    this->freqSlider->setMinimum(1);
+    this->freqSlider->setMaximum(freqLabels.size() - 1);
+    this->freqSlider->setTickInterval(1);
+    this->freqSlider->setTickPosition(QSlider::TicksBelow);
+
+    //QHBoxLayout * freqLabelsLayout = new QHBoxLayout();
+    //for (const QString &frequencia : freqLabels) {
+    //    QLabel * freq = new QLabel(frequencia);
+    //    freq->setAlignment(Qt::AlignCenter);
+    //    freqLabelsLayout->addWidget(freq);
+    //}
+    //QWidget * containerFreqSlider = new QWidget(direita);
+    //QVBoxLayout * layoutContainerFreqSlider = new QVBoxLayout();
+    //containerFreqSlider->setLayout(layoutContainerFreqSlider);
+    //layoutContainerFreqSlider->addWidget(freqSlider);
+    //layoutContainerFreqSlider->addLayout(freqLabelsLayout);
+    //layoutMainDireita->addWidget(containerFreqSlider);
+    layoutMainDireita->addWidget(freqSlider);
 }
 
 ResiFlow::~ResiFlow() = default;

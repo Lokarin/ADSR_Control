@@ -14,40 +14,43 @@ ChartWidget::ChartWidget(QWidget *parent)
     // Cria a serie estilo Line
     this->pontos = new QLineSeries();
 
-    this->updateChart(this->attack, this->hold, this->decayRelease, this->sustain, 180, this->maxVol);
-
     // Cria o grafico
-    QChart * chart = new QChart();
-    chart->addSeries(pontos);
+    this->chart = new QChart();
+    this->chart->addSeries(pontos);
+    this->chart->legend()->hide();
+    this->chart->setBackgroundBrush(QBrush(Qt::black));        
+    this->chart->setPlotAreaBackgroundBrush(QBrush(Qt::black)); 
+    this->chart->setPlotAreaBackgroundVisible(true);
+    //this->chart->setTitle("Gráfico AHDSR");
    
-    QValueAxis * yAxis = new QValueAxis;
-    yAxis->setRange(0, 1.1*this->maxVol);
-    yAxis->setLinePen(QPen(Qt::white));
-    yAxis->setLabelsColor(Qt::white);
-    yAxis->setGridLinePen(QPen(Qt::gray));
+    // Cria o eixo Y
+    this->yAxis = new QValueAxis;
+    this->yAxis->setRange(0, 1.1*this->maxVol);
+    this->yAxis->setLinePen(QPen(Qt::white));
+    this->yAxis->setLabelsColor(Qt::white);
+    this->yAxis->setGridLinePen(QPen(Qt::gray));
 
-    QValueAxis * xAxis = new QValueAxis;
-    xAxis->setRange(0, this->maxTime);
-    // Configura o eixo X
-    xAxis->setLinePen(QPen(Qt::white));
-    xAxis->setLabelsColor(Qt::white);
-    xAxis->setGridLinePen(QPen(Qt::gray));
+    // Cria o eixo X
+    this->xAxis = new QValueAxis;
+    this->xAxis->setRange(0, this->maxTime);
+    this->xAxis->setLinePen(QPen(Qt::white));
+    this->xAxis->setLabelsColor(Qt::white);
+    this->xAxis->setGridLinePen(QPen(Qt::gray));
 
-    chart->addAxis(yAxis, Qt::AlignLeft);
-    chart->addAxis(xAxis, Qt::AlignBottom);
+    // Adiciona os eixos ao grafico
+    this->chart->addAxis(yAxis, Qt::AlignLeft);
+    this->chart->addAxis(xAxis, Qt::AlignBottom);
 
-    pontos->attachAxis(yAxis);
-    pontos->attachAxis(xAxis);
+    // Ajusta os pontos aos eixos
+    this->pontos->attachAxis(yAxis);
+    this->pontos->attachAxis(xAxis);
 
-    chart->legend()->hide();
-    //chart->setTitle("Exemplo com QSplineSeries e QLineSeries");
-    chart->setBackgroundBrush(QBrush(Qt::black));        
-    chart->setPlotAreaBackgroundBrush(QBrush(Qt::black)); 
-    chart->setPlotAreaBackgroundVisible(true);
     
     // Seta o grafico a ser mostrado pelo chartwidget, no caso chart, criado em cima ali
-    setChart(chart);
     setRenderHint(QPainter::Antialiasing);
+    setChart(chart);
+
+    this->updateChart(this->attack, this->hold, this->decayRelease, this->sustain, 180, this->maxVol);
 }
 
 void ChartWidget::updateChart(int A, int H, int DR, int S, float freq, double maxVol) {
@@ -59,6 +62,8 @@ void ChartWidget::updateChart(int A, int H, int DR, int S, float freq, double ma
     this->maxTime = 1/(freq/60);
 
     this->pontos->clear();
+    this->xAxis->setRange(0, this->maxTime);
+    this->yAxis->setRange(0, 1.1*maxVol);
 
     QPen pen(Qt::red);
     pen.setWidth(6); 

@@ -7,6 +7,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QSlider>
 
 #include "chartwidget.h"
 #include "customknob.h"
@@ -18,5 +19,9 @@ class ResiFlow : public QMainWindow
 public:
     ResiFlow(QWidget *parent = nullptr);
     ~ResiFlow();
+private:
+    QMap<QString, CustomKnob*> knobs;
+    QSlider * freqSlider;
+    ChartWidget * chart;
 };
 #endif // RESIFLOW_H
