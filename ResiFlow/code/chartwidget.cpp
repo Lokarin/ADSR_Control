@@ -14,7 +14,7 @@ ChartWidget::ChartWidget(QWidget *parent)
     // Cria a serie estilo Line
     this->pontos = new QLineSeries();
 
-    this->updateChart(this->attack, this->hold, this->decayRelease, this->sustain);
+    this->updateChart(this->attack, this->hold, this->decayRelease, this->sustain, 180, this->maxVol);
 
     // Cria o grafico
     QChart * chart = new QChart();
@@ -50,7 +50,14 @@ ChartWidget::ChartWidget(QWidget *parent)
     setRenderHint(QPainter::Antialiasing);
 }
 
-void ChartWidget::updateChart(int A, int H, int DR, int S) {
+void ChartWidget::updateChart(int A, int H, int DR, int S, float freq, double maxVol) {
+    this->attack = A;
+    this->hold = H;
+    this->decayRelease = DR;
+    this->sustain = S;
+
+    this->maxTime = 1/(freq/60);
+
     this->pontos->clear();
 
     QPen pen(Qt::red);
