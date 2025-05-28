@@ -3,35 +3,31 @@
 ChartWidget::ChartWidget(QWidget *parent)
     : QChartView(parent)
 {
-
-    this->holdCalculation(5000);
+    this->maxVol = 4.18;
+    this->maxTime = 0.33;
 
     // Cria a serie estilo Spline
-    QSplineSeries * splineSeries = new QSplineSeries();
-    //splineSeries->append(1, 0);
-    //splineSeries->append(2, 3);
-    //splineSeries->append(3, 4);
-    //splineSeries->append(5, 4);
-    //splineSeries->append(6, 3);
-    //splineSeries->append(7, 2);
-    //splineSeries->append(9, 2);
-    //splineSeries->append(10, 1);
-    //splineSeries->append(11, 0);
+    QLineSeries * splineSeries = new QLineSeries();
 
-    // Cria a serie estilo Line
-    //QLineSeries * lineSeries = new QLineSeries();
-    //lineSeries->append(0, 3);
-    //lineSeries->append(1, 5);
-    //lineSeries->append(2, 6);
-    //lineSeries->append(3, 7);
-    //lineSeries->append(4, 8);
-    //lineSeries->append(5, 9);
+    this->holdCalculation(10000);
+    this->attackCalculation(this->holdTime, 1, this->maxVol, splineSeries);
 
     // Cria o grafico
     QChart * chart = new QChart();
     chart->addSeries(splineSeries);
-    //chart->addSeries(lineSeries);
-    chart->createDefaultAxes();
+   
+    QValueAxis * yAxis = new QValueAxis;
+    yAxis->setRange(0, 1.1*this->maxVol);
+
+    QValueAxis * xAxis = new QValueAxis;
+    xAxis->setRange(0, this->maxTime);
+
+    chart->addAxis(yAxis, Qt::AlignLeft);
+    chart->addAxis(xAxis, Qt::AlignBottom);
+
+    splineSeries->attachAxis(yAxis);
+    splineSeries->attachAxis(xAxis);
+
     chart->legend()->hide();
     //chart->setTitle("Exemplo com QSplineSeries e QLineSeries");
 
@@ -40,14 +36,28 @@ ChartWidget::ChartWidget(QWidget *parent)
     setRenderHint(QPainter::Antialiasing);
 }
 
-void ChartWidget::attackCalculation(float maxTime, int resistencia) {
+void ChartWidget::attackCalculation(double holdTime, int resistencia, double maxVol, QLineSeries *data) {
+    data->clear();
 
+    int numPontos = 20;
+
+    qDebug() << "Resistencia Attack: " << resistencia << "\n";
+    for (int i = 0; i < numPontos; ++i) {
+        // Calcula a fração do tempo atual
+        double t = holdTime * (static_cast<double>(i) / (numPontos - 1));
+
+        // Fórmula do capacitor carregando
+        double v = maxVol * (1.0 - exp(-t / (resistencia * 1e-6)));
+
+        // Adiciona o ponto na série
+        data->append(t, v);
+    }
 }
 
 void ChartWidget::holdCalculation(int R){
     this->holdTime = -log(0.6 * (R * 1000.0 / (R + 1000.0)) * (R + 1000.0) / (R * 5000.0)) * (R * 1000.0 / (R + 1000.0)) * 75e-6;
-    qDebug() << "Resistencia: " << R;
-    qDebug() << "HoldTime: " << this->holdTime;
+    qDebug() << "Resistencia Hold: " << R;
+    qDebug() << "HoldTime: " << this->holdTime << "\n";
 }
 
 ChartWidget::~ChartWidget() = default;

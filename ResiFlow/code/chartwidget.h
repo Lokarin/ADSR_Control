@@ -6,6 +6,7 @@
 #include <QtCharts/QChart>
 #include <QtCharts/QSplineSeries>
 #include <QtCharts/QLineSeries>
+#include <QtCharts/QValueAxis>
 
 QT_USE_NAMESPACE
 
@@ -17,8 +18,8 @@ public:
     ~ChartWidget();
 
 private:
-    float holdTime, maxTime;
-    void attackCalculation(float maxTime, int resistencia);
+    double holdTime, maxTime, maxVol;
+    void attackCalculation(double maxTime, int resistencia, double maxVol, QLineSeries *data);
     void holdCalculation(int R);
 };
 
