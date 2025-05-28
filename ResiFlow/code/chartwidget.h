@@ -17,7 +17,9 @@ public:
     ~ChartWidget();
 
 private:
+    float holdTime, maxTime;
     void attackCalculation(float maxTime, int resistencia);
+    void holdCalculation(int R);
 };
 
 #endif // CHARTWIDGET_H
