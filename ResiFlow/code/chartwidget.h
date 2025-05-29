@@ -20,7 +20,7 @@ public:
     void updatePontosReais();
 
 private:
-    double holdTime, maxTime, maxVol;
+    double holdTime, maxTime, maxVol, susValue, maxAttackV;
     int attack, hold, decayRelease, sustain;
 
     QLineSeries * pontos;
@@ -31,6 +31,9 @@ private:
 
     void attackCalculation();
     void holdCalculation();
+    void sustainCalculation();
+    void decayCalculation();
+    void releaseCalculation();
 };
 
 #endif // CHARTWIDGET_H

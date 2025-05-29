@@ -70,6 +70,7 @@ void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double
 
     qDebug() << "Resistencia Attack: " << this->attack << "\n";
     qDebug() << "Resistencia Hold: " << this->hold << "\n";
+    qDebug() << "Resistencia Sustain: " << this->sustain << "\n";
 
     this->maxTime = 1/(freq/60);
 
@@ -82,7 +83,10 @@ void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double
     this->pontosSimulados->setPen(pen1);
 
     this->holdCalculation();
+    this->sustainCalculation();
     this->attackCalculation();
+    this->decayCalculation();
+    this->releaseCalculation();
 
     qDebug() << "######################################" << "\n";
 }
@@ -107,8 +111,9 @@ void ChartWidget::holdCalculation(){
 
 void ChartWidget::attackCalculation() {
     int numPontos = 50;
+    int i;
 
-    for (int i = 0; i < numPontos; ++i) {
+    for (i = 0; i < numPontos; ++i) {
         // Calcula a fração do tempo atual
         double t = this->holdTime * (static_cast<double>(i) / (numPontos - 1));
 
@@ -118,7 +123,54 @@ void ChartWidget::attackCalculation() {
         // Adiciona o ponto na série
         this->pontosSimulados->append(t, v);
     }
+        double t = this->holdTime * (static_cast<double>(i) / (numPontos - 1));
+        double v = this->maxVol * (1.0 - exp(-t / (this->attack * 1e-6)));
+
+        this->maxAttackV = v;
 }
 
+void ChartWidget::sustainCalculation() {
+    int sustainRComp = 10000-this->sustain;
+    //qDebug() << "Sustain Complement: " << sustainRComp << "\n";
+    double div = static_cast<double>(this->sustain)/(sustainRComp + this->sustain);
+    //qDebug() << "Divsor de tensao (Resistencia): " << div << "\n";
+    this->susValue = maxVol * div;
+    qDebug() << "Sustain Value: " << this->susValue << "V" << "\n";
+}
+
+void ChartWidget::decayCalculation() {
+    int numPontos = 50;
+    int i;
+
+    qDebug() << "Decay Resistencia: " << this->decayRelease << "\n";
+
+    qDebug() << "maxTime/2: " << this->maxTime/2 << "\n";
+    qDebug() << "holdTime: " << this->holdTime << "\n";
+
+
+    qDebug() << "maxAttackV: " << this->maxAttackV << "\n";
+
+    
+    for (i = 0; i < numPontos; i++) {
+        double t = (((this->maxTime/2)-this->holdTime) * (static_cast<double>(i) / (numPontos - 1))) + this->holdTime;
+
+        double v = this->susValue + (this->maxAttackV - this->susValue) * exp(-(t - this->holdTime) / (this->decayRelease * 1e-6) );
+
+        this->pontosSimulados->append(t,v);
+    }
+}
+
+void ChartWidget::releaseCalculation() {
+    int numPontos = 50;
+    int i;
+
+    for (i = 0; i < numPontos; i++) {
+        double t = (this->maxTime/2) + ( (maxTime/2) *  (static_cast<double>(i) / (numPontos - 1)) );
+
+        double v = this->susValue * exp( -(t - (this->maxTime/2)) / (this->decayRelease * 1e-6) );
+
+        this->pontosSimulados->append(t,v);
+    }
+}
 
 ChartWidget::~ChartWidget() = default;
