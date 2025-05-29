@@ -20,14 +20,19 @@ public:
     void updatePontosReais();
 
 private:
-    double maxTime, holdTime, amplitudeMax, sustainVolt, maxAttackVolt;
-    int attackRes, holdRes, decayReleaseRes, sustainRes, resolucao;
+    double _maxTime, _holdTime, _amplitudeMax, _sustainVolt, _maxAttackVolt;
+    int _attackRes, _holdRes, _decayReleaseRes, _sustainRes, _resolucao;
 
     QLineSeries * pontosEnviados;
     QLineSeries * pontosPreview;
     QChart * chart;
     QValueAxis * yAxis;
     QValueAxis * xAxis;
+
+    void initializeChart();
+    void initializeAxes();
+    void initializeSeries();
+    void setupChartStyling();
 
     void attackCalculation();
     void holdCalculation();
