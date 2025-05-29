@@ -84,7 +84,7 @@ void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double
     this->holdCalculation();
     this->attackCalculation();
 
-    qDebug() << "######################################" << freq << "\n";
+    qDebug() << "######################################" << "\n";
 }
 
 void ChartWidget::updatePontosReais(){
