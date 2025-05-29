@@ -60,12 +60,16 @@ ChartWidget::ChartWidget(QWidget *parent)
 }
 
 void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double maxVol) {
-    qDebug() << "\n" << "Frequencia: " << freq << "\n";
+    qDebug() << "######################################" << "\n";
+    qDebug() << "Frequencia: " << freq << "\n";
 
     this->attack = A;
     this->hold = H;
     this->decayRelease = DR;
     this->sustain = S;
+
+    qDebug() << "Resistencia Attack: " << this->attack << "\n";
+    qDebug() << "Resistencia Hold: " << "\n";
 
     this->maxTime = 1/(freq/60);
 
@@ -79,6 +83,8 @@ void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double
 
     this->holdCalculation();
     this->attackCalculation();
+
+    qDebug() << "######################################" << freq << "\n";
 }
 
 void ChartWidget::updatePontosReais(){
@@ -95,15 +101,13 @@ void ChartWidget::holdCalculation(){
     int R = this->hold;
 
     this->holdTime = -log(0.6 * (R * 1000.0 / (R + 1000.0)) * (R + 1000.0) / (R * 5000.0)) * (R * 1000.0 / (R + 1000.0)) * 75e-6;
-    qDebug() << "Resistencia Hold: " << R;
-    qDebug() << "HoldTime: " << this->holdTime << "\n";
+    qDebug() << "HoldTime: " << this->holdTime << "s" << "\n";
 }
 
 
 void ChartWidget::attackCalculation() {
     int numPontos = 50;
 
-    qDebug() << "Resistencia Attack: " << this->attack << "\n";
     for (int i = 0; i < numPontos; ++i) {
         // Calcula a fração do tempo atual
         double t = this->holdTime * (static_cast<double>(i) / (numPontos - 1));
