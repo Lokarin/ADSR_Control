@@ -77,8 +77,8 @@ void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double
     this->yAxis->setRange(0, 1.1*maxVol);
 
     this->pontosSimulados->clear();
-    QPen pen1(Qt::green);
-    pen1.setWidth(10);
+    QPen pen1(QColor(100, 100, 0));
+    pen1.setWidth(4);
     this->pontosSimulados->setPen(pen1);
 
     this->holdCalculation();
@@ -90,7 +90,7 @@ void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double
 void ChartWidget::updatePontosReais(){
     this->pontos->clear();
 
-    QPen pen(Qt::red);
+    QPen pen(QColor(0, 255, 0));
     pen.setWidth(6); 
     this->pontos->setPen(pen);
 
