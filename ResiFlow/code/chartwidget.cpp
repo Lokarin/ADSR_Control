@@ -6,6 +6,7 @@ ChartWidget::ChartWidget(QWidget *parent)
     // Determinando valores de inicio
     this->amplitudeMax = 5;
     this->maxTime = 0.33;
+    this->resolucao = 25;
 
     this->attackRes = 10000;
     this->holdRes = 10000;
@@ -127,12 +128,11 @@ void ChartWidget::holdCalculation(){
 
 
 void ChartWidget::attackCalculation() {
-    int numPontos = 50;
     double v = 0.0;
 
-    for (int i = 0; i < numPontos; ++i) {
+    for (int i = 0; i < this->resolucao; ++i) {
         // Calcula a fração do tempo atual
-        double t = this->holdTime * (static_cast<double>(i) / (numPontos - 1));
+        double t = this->holdTime * (static_cast<double>(i) / (this->resolucao - 1));
 
         // Fórmula do capacitor carregando
         v = this->amplitudeMax * (1.0 - exp(-t / (this->attackRes * 1e-6)));
@@ -160,18 +160,17 @@ void ChartWidget::sustainCalculation() {
 }
 
 void ChartWidget::decayCalculation() {
-    int numPontos = 50;
     int i;
 
     //qDebug() << "Decay Resistencia: " << this->decayReleaseRes << "\n";
     //qDebug() << "maxTime/2: " << this->maxTime/2 << "\n";
     //qDebug() << "holdTime: " << this->holdTime << "\n";
 
-    for (i = 0; i < numPontos; i++) {
+    for (i = 0; i < this->resolucao; i++) {
         // O tempo é de decay começa no final do hold.
         // Logo somamos o tempo final do hold mais uma 
         // fracao do tempo até a metade do tempo total.
-        double t = this->holdTime + (((this->maxTime/2)-this->holdTime) * (static_cast<double>(i) / (numPontos - 1)));
+        double t = this->holdTime + (((this->maxTime/2)-this->holdTime) * (static_cast<double>(i) / (this->resolucao - 1)));
 
         // Fórmula da descarga em um capacitor, com uma tensão final.
         // Aqui vale destacar que como t não começa em zero, 
@@ -186,15 +185,14 @@ void ChartWidget::decayCalculation() {
 }
 
 void ChartWidget::releaseCalculation() {
-    int numPontos = 50;
     int i;
 
-    for (i = 0; i < numPontos; i++) {
+    for (i = 0; i < this->resolucao; i++) {
         // o release começa no tempo final do sustain. 
         // Que também é a metade do tempo total.
         // Logo o tempo começa da metade do tempo total, 
         // mais uma fracao do tempo até o final
-        double t = (this->maxTime/2) + ( (maxTime/2) *  (static_cast<double>(i) / (numPontos - 1)) );
+        double t = (this->maxTime/2) + ( (maxTime/2) *  (static_cast<double>(i) / (this->resolucao - 1)) );
 
         // Fórmula da descarga em capacitor.
         // Que nem no decay, devemos subtrair de t um valor 
