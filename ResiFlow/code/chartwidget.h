@@ -23,8 +23,8 @@ private:
     double maxTime, holdTime, amplitudeMax, sustainVolt, maxAttackVolt;
     int attackRes, holdRes, decayReleaseRes, sustainRes;
 
-    QLineSeries * pontos;
-    QLineSeries * pontosSimulados;
+    QLineSeries * pontosEnviados;
+    QLineSeries * pontosPreview;
     QChart * chart;
     QValueAxis * yAxis;
     QValueAxis * xAxis;

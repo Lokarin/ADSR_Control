@@ -14,16 +14,16 @@ ChartWidget::ChartWidget(QWidget *parent)
 
     // Cria a serie de pontos, esses de 
     // enviados para o AHDSR
-    this->pontos = new QLineSeries();
+    this->pontosEnviados = new QLineSeries();
 
     // Cria a serie de pontos, esses de 
     // pontos ainda somente simulados
-    this->pontosSimulados = new QLineSeries();
+    this->pontosPreview = new QLineSeries();
 
     // Cria o grafico
     this->chart = new QChart();
-    this->chart->addSeries(pontosSimulados);
-    this->chart->addSeries(pontos);
+    this->chart->addSeries(pontosPreview);
+    this->chart->addSeries(pontosEnviados);
     this->chart->legend()->hide();
     this->chart->setBackgroundBrush(QBrush(Qt::black));        
     this->chart->setPlotAreaBackgroundBrush(QBrush(Qt::black)); 
@@ -49,10 +49,10 @@ ChartWidget::ChartWidget(QWidget *parent)
     this->chart->addAxis(xAxis, Qt::AlignBottom);
 
     // Ajusta os pontos aos eixos
-    this->pontos->attachAxis(yAxis);
-    this->pontos->attachAxis(xAxis);
-    this->pontosSimulados->attachAxis(yAxis);
-    this->pontosSimulados->attachAxis(xAxis);
+    this->pontosEnviados->attachAxis(yAxis);
+    this->pontosEnviados->attachAxis(xAxis);
+    this->pontosPreview->attachAxis(yAxis);
+    this->pontosPreview->attachAxis(xAxis);
 
     
     // Seta o grafico a ser mostrado pelo 
@@ -86,12 +86,12 @@ void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double
     this->yAxis->setRange(0, 1.1*amplitudeMax);
 
     // limpamos os pontos de preview antigos
-    this->pontosSimulados->clear();
+    this->pontosPreview->clear();
 
     // determinamos como a linha da onda de preview se parece
     QPen pen1(QColor(100, 100, 0));
     pen1.setWidth(4);
-    this->pontosSimulados->setPen(pen1);
+    this->pontosPreview->setPen(pen1);
 
     // calculando os pontos da onda preview
     this->holdCalculation();
@@ -105,16 +105,16 @@ void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double
 
 void ChartWidget::updatePontosReais(){
     // limpamos os pontos da onda enviada
-    this->pontos->clear();
+    this->pontosEnviados->clear();
 
     // determinamos como a linha da onda de preview se parece
     QPen pen(QColor(0, 255, 0));
     pen.setWidth(6); 
-    this->pontos->setPen(pen);
+    this->pontosEnviados->setPen(pen);
 
     // determinamos que os pontos enviados sao 
     // iguais aos pontos de preview atuais
-    this->pontos->append(this->pontosSimulados->points());
+    this->pontosEnviados->append(this->pontosPreview->points());
 }
 
 void ChartWidget::holdCalculation(){
@@ -138,7 +138,7 @@ void ChartWidget::attackCalculation() {
         v = this->amplitudeMax * (1.0 - exp(-t / (this->attackRes * 1e-6)));
 
         // Adiciona o ponto na série
-        this->pontosSimulados->append(t, v);
+        this->pontosPreview->append(t, v);
     }
 
     this->maxAttackVolt = v;
@@ -163,7 +163,7 @@ void ChartWidget::decayCalculation() {
     int numPontos = 50;
     int i;
 
-    // qDebug() << "Decay Resistencia: " << this->decayReleaseRes << "\n";
+    //qDebug() << "Decay Resistencia: " << this->decayReleaseRes << "\n";
     //qDebug() << "maxTime/2: " << this->maxTime/2 << "\n";
     //qDebug() << "holdTime: " << this->holdTime << "\n";
 
@@ -181,7 +181,7 @@ void ChartWidget::decayCalculation() {
         double v = this->sustainVolt + (this->maxAttackVolt - this->sustainVolt) * exp(-(t - this->holdTime) / (this->decayReleaseRes * 1e-6) );
 
         // Adiciona os pontos à série de preview
-        this->pontosSimulados->append(t,v);
+        this->pontosPreview->append(t,v);
     }
 }
 
@@ -203,7 +203,7 @@ void ChartWidget::releaseCalculation() {
         double v = this->sustainVolt * exp( -(t - (this->maxTime/2)) / (this->decayReleaseRes * 1e-6) );
 
         // Adiciona os pontos à série de preview
-        this->pontosSimulados->append(t,v);
+        this->pontosPreview->append(t,v);
     }
 }
 
