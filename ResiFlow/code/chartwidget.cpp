@@ -3,18 +3,21 @@
 ChartWidget::ChartWidget(QWidget *parent)
     : QChartView(parent)
 {
-    this->maxVol = 5;
+    // Determinando valores de inicio
+    this->amplitudeMax = 5;
     this->maxTime = 0.33;
 
-    this->attack = 10000;
-    this->hold = 10000;
-    this->decayRelease = 10000;
-    this->sustain = 10000;
+    this->attackRes = 10000;
+    this->holdRes = 10000;
+    this->decayReleaseRes = 10000;
+    this->sustainRes = 10000;
 
-    // Cria a serie de pontos, esses de enviados para o AHDSR
+    // Cria a serie de pontos, esses de 
+    // enviados para o AHDSR
     this->pontos = new QLineSeries();
 
-    // Cria a serie de pontos, esses de pontos ainda somente simulados
+    // Cria a serie de pontos, esses de 
+    // pontos ainda somente simulados
     this->pontosSimulados = new QLineSeries();
 
     // Cria o grafico
@@ -29,7 +32,7 @@ ChartWidget::ChartWidget(QWidget *parent)
    
     // Cria o eixo Y
     this->yAxis = new QValueAxis;
-    this->yAxis->setRange(0, 1.1*this->maxVol);
+    this->yAxis->setRange(0, 1.1*this->amplitudeMax);
     this->yAxis->setLinePen(QPen(Qt::white));
     this->yAxis->setLabelsColor(Qt::white);
     this->yAxis->setGridLinePen(QPen(Qt::gray));
@@ -52,110 +55,132 @@ ChartWidget::ChartWidget(QWidget *parent)
     this->pontosSimulados->attachAxis(xAxis);
 
     
-    // Seta o grafico a ser mostrado pelo chartwidget, no caso chart, criado em cima ali
+    // Seta o grafico a ser mostrado pelo 
+    // chartwidget, no caso chart, criado em cima ali
     setRenderHint(QPainter::Antialiasing);
     setChart(chart);
 
-    this->updateChartSim(this->attack, this->hold, this->decayRelease, this->sustain, 180, this->maxVol);
+    // uptate no grafico, no caso só com a onda de preview
+    this->updateChartSim(this->attackRes, this->holdRes, this->decayReleaseRes, this->sustainRes, 180, this->amplitudeMax);
 }
 
-void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double maxVol) {
-    qDebug() << "######################################" << "\n";
-    qDebug() << "Frequencia: " << freq << "\n";
+void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double amplitudeMax) {
+    //qDebug() << "######################################" << "\n";
+    //qDebug() << "Frequencia: " << freq << "\n";
 
-    this->attack = A;
-    this->hold = H;
-    this->decayRelease = DR;
-    this->sustain = S;
+    this->attackRes = A;
+    this->holdRes = H;
+    this->decayReleaseRes = DR;
+    this->sustainRes = S;
 
-    qDebug() << "Resistencia Attack: " << this->attack << "\n";
-    qDebug() << "Resistencia Hold: " << this->hold << "\n";
-    qDebug() << "Resistencia Sustain: " << this->sustain << "\n";
+    //qDebug() << "Resistencia Attack: " << this->attackRes << "\n";
+    //qDebug() << "Resistencia Hold: " << this->holdRes << "\n";
+    //qDebug() << "Resistencia Sustain: " << this->sustainRes << "\n";
 
+    // calculando a Frequencia em hertz, 
+    // e entao encontrando o periodo
     this->maxTime = 1/(freq/60);
 
+    // atualizando os eixos para novos valores
     this->xAxis->setRange(0, this->maxTime);
-    this->yAxis->setRange(0, 1.1*maxVol);
+    this->yAxis->setRange(0, 1.1*amplitudeMax);
 
+    // limpamos os pontos de preview antigos
     this->pontosSimulados->clear();
+
+    // determinamos como a linha da onda de preview se parece
     QPen pen1(QColor(100, 100, 0));
     pen1.setWidth(4);
     this->pontosSimulados->setPen(pen1);
 
+    // calculando os pontos da onda preview
     this->holdCalculation();
     this->sustainCalculation();
     this->attackCalculation();
     this->decayCalculation();
     this->releaseCalculation();
 
-    qDebug() << "######################################" << "\n";
+    //qDebug() << "######################################" << "\n";
 }
 
 void ChartWidget::updatePontosReais(){
+    // limpamos os pontos da onda enviada
     this->pontos->clear();
 
+    // determinamos como a linha da onda de preview se parece
     QPen pen(QColor(0, 255, 0));
     pen.setWidth(6); 
     this->pontos->setPen(pen);
 
+    // determinamos que os pontos enviados sao 
+    // iguais aos pontos de preview atuais
     this->pontos->append(this->pontosSimulados->points());
 }
 
 void ChartWidget::holdCalculation(){
-    int R = this->hold;
+    int R = this->holdRes;
 
+    // formula para encontrar tempo (foi mto dificil calcular isso)
     this->holdTime = -log(0.6 * (R * 1000.0 / (R + 1000.0)) * (R + 1000.0) / (R * 5000.0)) * (R * 1000.0 / (R + 1000.0)) * 75e-6;
-    qDebug() << "HoldTime: " << this->holdTime << "s" << "\n";
+    //qDebug() << "HoldTime: " << this->holdTime << "s" << "\n";
 }
 
 
 void ChartWidget::attackCalculation() {
     int numPontos = 50;
-    int i;
+    double v = 0.0;
 
-    for (i = 0; i < numPontos; ++i) {
+    for (int i = 0; i < numPontos; ++i) {
         // Calcula a fração do tempo atual
         double t = this->holdTime * (static_cast<double>(i) / (numPontos - 1));
 
         // Fórmula do capacitor carregando
-        double v = this->maxVol * (1.0 - exp(-t / (this->attack * 1e-6)));
+        v = this->amplitudeMax * (1.0 - exp(-t / (this->attackRes * 1e-6)));
 
         // Adiciona o ponto na série
         this->pontosSimulados->append(t, v);
     }
-        double t = this->holdTime * (static_cast<double>(i) / (numPontos - 1));
-        double v = this->maxVol * (1.0 - exp(-t / (this->attack * 1e-6)));
 
-        this->maxAttackV = v;
+    this->maxAttackVolt = v;
 }
 
 void ChartWidget::sustainCalculation() {
-    int sustainRComp = 10000-this->sustain;
+    // o potenciometro é de 10k, logo o outro lado do 
+    // potenciometro é 10k menos a resistencia de sustain
+    int sustainRComp = 10000-this->sustainRes;
     //qDebug() << "Sustain Complement: " << sustainRComp << "\n";
-    double div = static_cast<double>(this->sustain)/(sustainRComp + this->sustain);
+
+    // Rv = R1 / R1 + R2
+    double div = static_cast<double>(this->sustainRes)/(sustainRComp + this->sustainRes);
     //qDebug() << "Divsor de tensao (Resistencia): " << div << "\n";
-    this->susValue = maxVol * div;
-    qDebug() << "Sustain Value: " << this->susValue << "V" << "\n";
+
+    // Vsus = Vtotal * Rv
+    this->sustainVolt = amplitudeMax * div;
+    //qDebug() << "Sustain Value: " << this->sustainVolt << "V" << "\n";
 }
 
 void ChartWidget::decayCalculation() {
     int numPontos = 50;
     int i;
 
-    qDebug() << "Decay Resistencia: " << this->decayRelease << "\n";
+    // qDebug() << "Decay Resistencia: " << this->decayReleaseRes << "\n";
+    //qDebug() << "maxTime/2: " << this->maxTime/2 << "\n";
+    //qDebug() << "holdTime: " << this->holdTime << "\n";
 
-    qDebug() << "maxTime/2: " << this->maxTime/2 << "\n";
-    qDebug() << "holdTime: " << this->holdTime << "\n";
-
-
-    qDebug() << "maxAttackV: " << this->maxAttackV << "\n";
-
-    
     for (i = 0; i < numPontos; i++) {
-        double t = (((this->maxTime/2)-this->holdTime) * (static_cast<double>(i) / (numPontos - 1))) + this->holdTime;
+        // O tempo é de decay começa no final do hold.
+        // Logo somamos o tempo final do hold mais uma 
+        // fracao do tempo até a metade do tempo total.
+        double t = this->holdTime + (((this->maxTime/2)-this->holdTime) * (static_cast<double>(i) / (numPontos - 1)));
 
-        double v = this->susValue + (this->maxAttackV - this->susValue) * exp(-(t - this->holdTime) / (this->decayRelease * 1e-6) );
+        // Fórmula da descarga em um capacitor, com uma tensão final.
+        // Aqui vale destacar que como t não começa em zero, 
+        // devemos subtrair o tempo de hold de t na fórmula, pois 
+        // do contrário ele vai estar calculando essa curva a 
+        // partir do zero do grafico.
+        double v = this->sustainVolt + (this->maxAttackVolt - this->sustainVolt) * exp(-(t - this->holdTime) / (this->decayReleaseRes * 1e-6) );
 
+        // Adiciona os pontos à série de preview
         this->pontosSimulados->append(t,v);
     }
 }
@@ -165,10 +190,19 @@ void ChartWidget::releaseCalculation() {
     int i;
 
     for (i = 0; i < numPontos; i++) {
+        // o release começa no tempo final do sustain. 
+        // Que também é a metade do tempo total.
+        // Logo o tempo começa da metade do tempo total, 
+        // mais uma fracao do tempo até o final
         double t = (this->maxTime/2) + ( (maxTime/2) *  (static_cast<double>(i) / (numPontos - 1)) );
 
-        double v = this->susValue * exp( -(t - (this->maxTime/2)) / (this->decayRelease * 1e-6) );
+        // Fórmula da descarga em capacitor.
+        // Que nem no decay, devemos subtrair de t um valor 
+        // que quando i = 0, a fórmula entenda que estamos 
+        // calculando a tensão para o momento 0.
+        double v = this->sustainVolt * exp( -(t - (this->maxTime/2)) / (this->decayReleaseRes * 1e-6) );
 
+        // Adiciona os pontos à série de preview
         this->pontosSimulados->append(t,v);
     }
 }

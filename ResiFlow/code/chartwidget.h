@@ -20,8 +20,8 @@ public:
     void updatePontosReais();
 
 private:
-    double holdTime, maxTime, maxVol, susValue, maxAttackV;
-    int attack, hold, decayRelease, sustain;
+    double maxTime, holdTime, amplitudeMax, sustainVolt, maxAttackVolt;
+    int attackRes, holdRes, decayReleaseRes, sustainRes;
 
     QLineSeries * pontos;
     QLineSeries * pontosSimulados;
