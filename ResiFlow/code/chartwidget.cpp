@@ -69,7 +69,7 @@ void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double
     this->sustain = S;
 
     qDebug() << "Resistencia Attack: " << this->attack << "\n";
-    qDebug() << "Resistencia Hold: " << "\n";
+    qDebug() << "Resistencia Hold: " << this->hold << "\n";
 
     this->maxTime = 1/(freq/60);
 
