@@ -139,7 +139,7 @@ init_timer2_vca_input:
     STS TCCR2A, tempReg
 
     ; prescaler 1024
-    LDI tempReg, (1<<CS22) | (1<<CS21) | (1<<CS20)
+    LDI tempReg, (1<<CS22) | (1<<CS21) 
     STS TCCR2B, tempReg
 
     ; Inicialização padrão com 1kHz

@@ -86,7 +86,7 @@ int main() {
     while (true) {
         int atkSteps, susSteps, holdSteps, decRelSteps, triggerBpm, vcaInputFrequency, ocr1aValue, ocr2aValue;
         const int F_CPU = 16000000;
-        const int ocr1aPreScaler = 256, ocr2aPreScaler = 1024;
+        const int ocr1aPreScaler = 256, ocr2aPreScaler = 256;
 
         cout << "Attack - passos (0-100): ";                 cin >> atkSteps;
 
