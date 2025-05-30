@@ -73,7 +73,7 @@ ResiFlow::ResiFlow(QWidget *parent)
 
         connect(knob, &QDial::valueChanged, this, [=](int value){
             label->setText(QString("%1: %2").arg(name).arg(value));
-            this->getKnobValues();
+            getKnobValues();
         });
         
         textKnobLayout->addWidget(knob);
@@ -84,13 +84,13 @@ ResiFlow::ResiFlow(QWidget *parent)
 
     // Slider para frequencia
     QVBoxLayout * freqPicker = new QVBoxLayout();
-    this->freqLabels = {"60", "100", "120", "150", "180"};
-    this->freqSlider = new QSlider(Qt::Vertical);
-    this->freqSlider->setMinimum(0);
-    this->freqSlider->setMaximum(freqLabels.size() - 1);
-    this->freqSlider->setTickInterval(1);
-    this->freqSlider->setTickPosition(QSlider::TicksBothSides);
-    this->freqSlider->setSliderPosition(4);
+    freqLabels = {"60", "100", "120", "150", "180"};
+    freqSlider = new QSlider(Qt::Vertical);
+    freqSlider->setMinimum(0);
+    freqSlider->setMaximum(freqLabels.size() - 1);
+    freqSlider->setTickInterval(1);
+    freqSlider->setTickPosition(QSlider::TicksBothSides);
+    freqSlider->setSliderPosition(4);
     freqLabel = new QLabel(QString("BPM: 180"));
     QFontMetrics fm(freqLabel->font());
     int freqLabelW = fm.horizontalAdvance("BPM: 180");  // largura do maior valor
@@ -111,13 +111,13 @@ ResiFlow::ResiFlow(QWidget *parent)
     
     // Connects
     connect(botao, &QPushButton::clicked, this, [=]() {
-          this->chart->updatePontosReais(); 
+          chart->updatePontosReais(); 
     });
 
     connect(freqSlider, &QSlider::valueChanged, this, [=]() {
-           int freqIndex = this->freqSlider->value();
-           this->freqLabel->setText(QString("BPM: %1").arg(this->freqLabels[freqIndex]));
-           this->getKnobValues();
+           int freqIndex = freqSlider->value();
+           freqLabel->setText(QString("BPM: %1").arg(freqLabels[freqIndex]));
+           getKnobValues();
     });
 }
 
@@ -127,10 +127,10 @@ void ResiFlow::getKnobValues(){
             int S = (knobs["Sustain"]->value()*100)+1;
             int H = (knobs["Hold"]->value()*100)+1;
 
-            int freqIndex = this->freqSlider->value();
-            int freqVal = this->freqLabels[freqIndex].toInt();
+            int freqIndex = freqSlider->value();
+            int freqVal = freqLabels[freqIndex].toInt();
 
-            this->chart->updateChartSim(A, H, DR, S, freqVal, 5);
+            chart->updateChartSim(A, H, DR, S, freqVal, 5);
 }
 
 ResiFlow::~ResiFlow() = default;
