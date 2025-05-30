@@ -9,8 +9,8 @@
 #include <QLabel>
 #include <QSlider>
 
-#include "chartwidget.h"
-#include "customknob.h"
+#include "chartwidget/chartwidget.h"
+#include "customknob/customknob.h"
 
 class ResiFlow : public QMainWindow
 {

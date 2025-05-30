@@ -14,20 +14,19 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Charts)
 
 set(PROJECT_SOURCES
         main.cpp
-        resiflow.cpp
-        resiflow.h
+        src/resiflow/resiflow.cpp
+        src/resiflow/resiflow.h
+        src/customknob/customknob.cpp
+        src/customknob/customknob.h
+        src/chartwidget/chartwidget.cpp
+        src/chartwidget/chartwidget.h
+        imgs.qrc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(ResiFlow
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        chartwidget.h
-        chartwidget.cpp
-        customknob.h
-        imgs.qrc
-        customknob.cpp
-
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET ResiFlow APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -46,6 +45,10 @@ else()
         )
     endif()
 endif()
+
+target_include_directories(ResiFlow PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
 target_link_libraries(ResiFlow PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Charts)
 
