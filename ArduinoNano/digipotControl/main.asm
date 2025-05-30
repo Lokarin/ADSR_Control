@@ -3,8 +3,8 @@
 ; File:     main.asm
 ; Author:   Gabriel Garcia; Henrique Onuki
 ; Created:  2025-04-19
-; Modified: 2025-05-28
-; Version:  1.h
+; Modified: 2025-05-29
+; Version:  1.i
 ; Notes:    Controle de Digipots. Fcpu = 16 MHz.
 ; ------------------------------------------------------------------------------
 
@@ -20,8 +20,9 @@
 .def   digiPotSelectorReg          = R17
 .def   counterBytesLeft            = R21
 .def   loopReg                     = R22
-.def   timer0FreqByte              = R23
-.def   timer2FreqByte              = R24
+.def   timer1FreqByteLow           = R23
+.def   timer1FreqByteHigh          = R24
+.def   timer2FreqByte              = R25
 .def   receivedByte                = R0
 .def   attackByte                  = R1
 .def   holdByte                    = R2
@@ -115,7 +116,7 @@ init_timer1_adsr_trigger:
     LDI tempReg, (1<<COM1A0)
     STS TCCR1A, tempReg
 
-    ; Modo CTC + prescaler 256
+    ;prescaler 256 + Modo CTC
     LDI tempReg, (1<<CS12) | (1<<WGM12)
     STS TCCR1B, tempReg
 
@@ -133,16 +134,16 @@ init_timer2_vca_input:
     ; PB3 como saída
     SBI DDRB, PB3
 
-    ; OC1A (PB3) como toggle
+    ; OC1A (PB3) como toggle + Modo CTC
     LDI tempReg, (1<<COM2A0) | (1<<WGM21)
     STS TCCR2A, tempReg
 
-    ; Modo CTC + prescaler 256
-    LDI tempReg, (1<<CS22) | (1<<CS21)
+    ; prescaler 1024
+    LDI tempReg, (1<<CS22) | (1<<CS21) | (1<<CS20)
     STS TCCR2B, tempReg
 
     ; Inicialização padrão com 1kHz
-    LDI tempReg, 31
+    LDI tempReg, 7
     STS OCR2A, tempReg
 
 ; ==========================[ INIT: USART 9600 bps ]===========================
@@ -197,7 +198,10 @@ read_adsr_and_timer_bytes:
     MOV   decayAndReleaseByte, tempReg
 
     RCALL usart_receive_byte
-    MOV   timer0FreqByte, tempReg
+    MOV   timer1FreqByteHigh, tempReg
+
+    RCALL usart_receive_byte
+    MOV   timer1FreqByteLow, tempReg
 
     RCALL usart_receive_byte
     MOV   timer2FreqByte, tempReg
@@ -206,55 +210,15 @@ read_adsr_and_timer_bytes:
 
 set_adsr_trigger_freq:
 
-    CPI  timer0FreqByte, 0x0
-    BREQ set_trigger_1hz
+    STS OCR1AH, timer1FreqByteHigh
 
-    CPI  timer0FreqByte, 0x1
-    BREQ set_trigger_3hz
-
-set_trigger_1hz:
-
-    LDI  tempReg, high(31249)
-    STS  OCR1AH, tempReg
-
-    LDI  tempReg, low(31249)
-    STS  OCR1AL, tempReg
-
-    RJMP set_vca_input_freq
-
-set_trigger_3hz:
-
-    LDI  tempReg, high(10416)
-    STS  OCR1AH, tempReg
-
-    LDI  tempReg, low(10416)
-    STS  OCR1AL, tempReg
-
-    RJMP set_vca_input_freq
+    STS OCR1AL, timer1FreqByteLow
 
 ; =============[ VCA_CTRL: Ajuste de frequência de entrada ]===================
 
 set_vca_input_freq:
 
-    CPI  timer2FreqByte, 0x0
-    BREQ set_vca_200hz
-
-    CPI  timer2FreqByte, 0x1
-    BREQ set_vca_1khz
-
-set_vca_200hz:
-
-    LDI  tempReg, 155
-    STS  OCR2A, tempReg
-
-    RJMP reset_all_digipots
-
-set_vca_1khz:
-
-    LDI  tempReg, 31
-    STS  OCR2A, tempReg
-
-    RJMP reset_all_digipots
+    STS OCR2A, timer2FreqByte
 
 ; =================[ DIGIPOTS: zera todos os potenciômetros ]==================
 
@@ -308,8 +272,8 @@ digipot_step_up_start:
     RCALL delay_1us
 
 digipot_step_up_loop:
-
     ; Ativa e desativa o PD2(digipots CLK) enquanto o número de steps(ou loops) armazenados em loopReg e != 0
+
     ORI   tempReg, 0b00000100           ; Borda de subida
     OUT   PORTD, tempReg
 
@@ -405,18 +369,18 @@ delay100Loop:
 
 delay_1us:
 
-    ;zera contador TCNT0
+    ; Zera contador TCNT0
     CLR R18
     OUT TCNT0, R18
 
 delay_1us_polling:
 
-    ;espera OCF0A == 1
+    ; Espera OCF0A == 1
     IN   R18, TIFR0
     SBRS R18, OCF0A
     RJMP delay_1us_polling
 
-    ;limpa a flag de compare A (escreve 1 para limpar)
+    ; Limpa a flag de compare A (escreve 1 para limpar)
     LDI  R18, (1 << OCF0A)
     OUT  TIFR0, R18
 

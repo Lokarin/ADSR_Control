@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -83,7 +84,9 @@ int main() {
 #endif
 
     while (true) {
-        int atkSteps, susSteps, holdSteps, decRelSteps, triggerFrequency, vcaInputFrequency;
+        int atkSteps, susSteps, holdSteps, decRelSteps, triggerBpm, vcaInputFrequency, ocr1aValue, ocr2aValue;
+        const int F_CPU = 16000000;
+        const int ocr1aPreScaler = 256, ocr2aPreScaler = 1024;
 
         cout << "Attack - passos (0-100): ";                 cin >> atkSteps;
 
@@ -93,43 +96,48 @@ int main() {
 
         cout << "Decay/Release - passos (0-100): ";          cin >> decRelSteps;
 
-        cout << "Trigger frequency (1Hz, 3Hz): ";            cin >> triggerFrequency;
+        cout << "Trigger BPM (60, 100, 120, 150, 180): ";    cin >> triggerBpm;
 
-        cout << "VCA sign in frequency (200Hz, 1000Hz): ";   cin >> vcaInputFrequency;
+        cout << "VCA sign in frequency: ";                   cin >> vcaInputFrequency;
 
-        switch (triggerFrequency)
-        {
-        case 1:
-            triggerFrequency = 0;
+        float triggerOscFreq;
+        switch (triggerBpm) {
+        case 60:
+            triggerOscFreq = 1;
             break;
-        case 3:
-            triggerFrequency = 1;
+        case 100:
+            triggerOscFreq = 1.6;
+            break;
+        case 120:
+            triggerOscFreq = 2;
+            break;
+        case 150:
+            triggerOscFreq = 2.5;
+            break;
+        case 180:
+            triggerOscFreq = 3;
             break;
         default:
-            triggerFrequency = 0;
+            triggerOscFreq = 1;
             break;
         }
 
-        switch (vcaInputFrequency)
-        {
-        case 200:
-            vcaInputFrequency = 0;
-            break;
-        case 1000:
-            vcaInputFrequency = 1;
-            break;
-        default:
-            vcaInputFrequency = 0;
-            break;
-        }
+        double temp;
+        temp = ( (double)(F_CPU) / (2 * ocr1aPreScaler * triggerOscFreq) ) - 1;
+        ocr1aValue = static_cast<int>(round(temp));
+        
+        temp = ( (double)(F_CPU) / (2 * ocr2aPreScaler * vcaInputFrequency) ) - 1;
+        ocr2aValue = static_cast<int>(round(temp));
 
-        byte Atk       = (atkSteps & 0x7F);
-        byte Hold      = (holdSteps & 0x7F);
-        byte Sustain   = (susSteps & 0x7F);
-        byte DecRel    = (decRelSteps & 0x7F);
-        byte Trigger   = (triggerFrequency & 0x7F);
-        byte VcaInput = (vcaInputFrequency & 0x7F);
-        byte passos[6] = {Atk, Hold, Sustain, DecRel, Trigger, VcaInput};
+        byte Atk         = (atkSteps);
+        byte Hold        = (holdSteps);
+        byte Sustain     = (susSteps);
+        byte DecRel      = (decRelSteps);
+        byte Trigger     = (ocr1aValue);
+        byte TriggerHigh = (ocr1aValue >> 8) & 0xFF;
+        byte TriggerLow  = (ocr1aValue & 0xFF);        
+        byte VcaInput    = (ocr2aValue); 
+        byte passos[7]   = {Atk, Hold, Sustain, DecRel, TriggerHigh, TriggerLow, VcaInput};
 
 #ifdef _WIN32
         DWORD bytesWritten;
