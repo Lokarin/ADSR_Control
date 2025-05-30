@@ -59,7 +59,6 @@ void ChartWidget::initializeSeries() {
     pontosPreview->attachAxis(xAxis);
 }
 
-
 void ChartWidget::setupChartStyling() {
     // aparenci da linha da serie de preview
     QPen pen1(QColor(100, 100, 0));
@@ -131,7 +130,6 @@ void ChartWidget::holdCalculation(){
     _holdTime = -log(0.6 * (R * 1000.0 / (R + 1000.0)) * (R + 1000.0) / (R * 5000.0)) * (R * 1000.0 / (R + 1000.0)) * 75e-6;
     //qDebug() << "HoldTime: " << _holdTime << "s" << "\n";
 }
-
 
 void ChartWidget::attackCalculation() {
     double v = 0.0;
