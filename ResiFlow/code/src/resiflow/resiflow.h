@@ -8,7 +8,8 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QSlider>
-#include "QStatusBar"
+#include <QStatusBar>
+#include <QGroupBox>
 
 #include "chartwidget/chartwidget.h"
 #include "customknob/customknob.h"

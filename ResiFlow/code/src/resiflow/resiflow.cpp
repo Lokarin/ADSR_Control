@@ -47,14 +47,16 @@ ResiFlow::ResiFlow(QWidget *parent)
     QPushButton * botao2 = new QPushButton("Botao na Direita Dois");
 
     // Cria widget do grafico
-    chart = new ChartWidget;
+    QGroupBox * chartGroup = new QGroupBox();
     QHBoxLayout * chartLayout = new QHBoxLayout();
+    chartGroup->setLayout(chartLayout);
+    chart = new ChartWidget;
     chartLayout->addWidget(chart);
 
     // Criar tray de quatro knobs
-    QWidget * trayContainer = new QWidget(esquerda);
-    trayContainer->setMaximumHeight(300);
-    QHBoxLayout * knobTray = new QHBoxLayout(trayContainer);
+    QGroupBox * trayGroup = new QGroupBox(esquerda);
+    trayGroup->setMaximumHeight(300);
+    QHBoxLayout * knobTray = new QHBoxLayout(trayGroup);
 
     QStringList knobNames = {"Attack", "Decay/Release", "Sustain", "Hold"};
     for (const QString &name : knobNames) {
@@ -106,8 +108,9 @@ ResiFlow::ResiFlow(QWidget *parent)
     // Adicionando as coisas aos layouts
     layoutMainEsquerda->addWidget(botao);
     chartLayout->addLayout(freqPicker);
-    layoutMainEsquerda->addLayout(chartLayout);
-    layoutMainEsquerda->addWidget(trayContainer);
+    //layoutMainEsquerda->addLayout(chartLayout);
+    layoutMainEsquerda->addWidget(chartGroup);
+    layoutMainEsquerda->addWidget(trayGroup);
 
     //layoutMainDireita->addLayout(freqPicker);
     layoutMainDireita->addWidget(botao1);
