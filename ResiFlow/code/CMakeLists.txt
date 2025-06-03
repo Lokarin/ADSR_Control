@@ -20,6 +20,8 @@ set(PROJECT_SOURCES
         src/customknob/customknob.h
         src/chartwidget/chartwidget.cpp
         src/chartwidget/chartwidget.h
+        src/serialwidget/serialwidget.cpp
+        src/serialwidget/serialwidget.h
         imgs.qrc
 )
 

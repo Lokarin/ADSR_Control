@@ -11,10 +11,9 @@
 #include <QStatusBar>
 #include <QGroupBox>
 
-#include <QComboBox>
-
 #include "chartwidget/chartwidget.h"
 #include "customknob/customknob.h"
+#include "serialwidget/serialwidget.h"
 
 class ResiFlow : public QMainWindow
 {
