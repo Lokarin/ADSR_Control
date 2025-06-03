@@ -8,6 +8,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QSlider>
+#include "QStatusBar"
 
 #include "chartwidget/chartwidget.h"
 #include "customknob/customknob.h"
@@ -23,6 +24,7 @@ private:
     QMap<QString, CustomKnob*> knobs;
     ChartWidget * chart;
 
+    QStatusBar * status;
     QSlider * freqSlider;
     QLabel * freqLabel;
     QStringList freqLabels;

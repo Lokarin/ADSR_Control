@@ -10,6 +10,10 @@ ResiFlow::ResiFlow(QWidget *parent)
     setCentralWidget(central);
     central->setMinimumHeight(700);
 
+    status = new QStatusBar(this);
+    this->setStatusBar(status);
+    status->showMessage("Aguardando conexão...");
+
     // Layout Principal Horizontal
     QHBoxLayout * layoutMain = new QHBoxLayout(central);
 
