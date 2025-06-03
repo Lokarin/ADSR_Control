@@ -40,12 +40,24 @@ ResiFlow::ResiFlow(QWidget *parent)
     // Criar um botao na esquerda
     QPushButton * botao = new QPushButton("Enviar Curva Atual");
 
-    // Criar um botao na direita
-    QPushButton * botao1 = new QPushButton("Botao na Direita");
+    // Grupo de conexão
+    QGroupBox * conexaoGroup = new QGroupBox;
+    QVBoxLayout * conexaoLayout = new QVBoxLayout;
+    conexaoGroup->setLayout(conexaoLayout);
+    QLabel * labelConexao = new QLabel("Conexão Serial");
+    labelConexao->setAlignment(Qt::AlignHCenter);
+    conexaoLayout->addWidget(labelConexao);
 
-    // Criar um botao na direita 2
-    QPushButton * botao2 = new QPushButton("Botao na Direita Dois");
-
+    QHBoxLayout * conexaoLayoutInterface = new QHBoxLayout;
+    QComboBox * portSelectCombo = new QComboBox;
+    portSelectCombo->addItems({"tty0", "tty1", "tt2"});
+    QPushButton * refreshConexaoButton = new QPushButton("Atualizar");
+    QPushButton * connectConexaoButton = new QPushButton("Conectar");
+    conexaoLayoutInterface->addWidget(portSelectCombo);
+    conexaoLayoutInterface->addWidget(refreshConexaoButton);
+    conexaoLayoutInterface->addWidget(connectConexaoButton);
+    conexaoLayout->addLayout(conexaoLayoutInterface);
+    
     // Cria widget do grafico
     QGroupBox * chartGroup = new QGroupBox();
     QHBoxLayout * chartLayout = new QHBoxLayout();
@@ -113,8 +125,7 @@ ResiFlow::ResiFlow(QWidget *parent)
     layoutMainEsquerda->addWidget(trayGroup);
 
     //layoutMainDireita->addLayout(freqPicker);
-    layoutMainDireita->addWidget(botao1);
-    layoutMainDireita->addWidget(botao2);
+    layoutMainDireita->addWidget(conexaoGroup);
     
     // Connects
     connect(botao, &QPushButton::clicked, this, [=]() {

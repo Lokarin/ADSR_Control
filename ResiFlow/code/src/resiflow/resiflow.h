@@ -11,6 +11,8 @@
 #include <QStatusBar>
 #include <QGroupBox>
 
+#include <QComboBox>
+
 #include "chartwidget/chartwidget.h"
 #include "customknob/customknob.h"
 
