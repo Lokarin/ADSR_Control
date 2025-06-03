@@ -139,7 +139,7 @@ void ChartWidget::attackCalculation() {
         double t = _holdTime * (static_cast<double>(i) / (_resolucao - 1));
 
         // Fórmula do capacitor carregando
-        v = _amplitudeMax * (1.0 - exp(-t / (_attackRes * 1e-6)));
+        v = _amplitudeMax * (1.0 - exp(-t / (_attackRes * 10e-6)));
 
         // Adiciona o ponto na série
         pontosPreview->append(t, v);
@@ -165,6 +165,7 @@ void ChartWidget::sustainCalculation() {
 
 void ChartWidget::decayCalculation() {
     int i;
+    double v;
 
     //qDebug() << "Decay Resistencia: " << _decayReleaseRes << "\n";
     //qDebug() << "_maxTime/2: " << _maxTime/2 << "\n";
@@ -181,11 +182,13 @@ void ChartWidget::decayCalculation() {
         // devemos subtrair o tempo de hold de t na fórmula, pois 
         // do contrário ele vai estar calculando essa curva a 
         // partir do zero do grafico.
-        double v = _sustainVolt + (_maxAttackVolt - _sustainVolt) * exp(-(t - _holdTime) / (_decayReleaseRes * 1e-6) );
+        v = _sustainVolt + (_maxAttackVolt - _sustainVolt) * exp(-(t - _holdTime) / (_decayReleaseRes * 10e-6) );
 
         // Adiciona os pontos à série de preview
         pontosPreview->append(t,v);
     }
+
+    _minDecayVolt = v;
 }
 
 void ChartWidget::releaseCalculation() {
@@ -202,7 +205,7 @@ void ChartWidget::releaseCalculation() {
         // Que nem no decay, devemos subtrair de t um valor 
         // que quando i = 0, a fórmula entenda que estamos 
         // calculando a tensão para o momento 0.
-        double v = _sustainVolt * exp( -(t - (_maxTime/2)) / (_decayReleaseRes * 1e-6) );
+        double v = _minDecayVolt * exp( -(t - (_maxTime/2)) / (_decayReleaseRes * 10e-6) );
 
         // Adiciona os pontos à série de preview
         pontosPreview->append(t,v);

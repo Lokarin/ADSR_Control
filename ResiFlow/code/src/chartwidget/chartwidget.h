@@ -20,7 +20,7 @@ public:
     void updatePontosReais();
 
 private:
-    double _maxTime, _holdTime, _amplitudeMax, _sustainVolt, _maxAttackVolt;
+    double _maxTime, _holdTime, _amplitudeMax, _sustainVolt, _maxAttackVolt, _minDecayVolt;
     int _attackRes, _holdRes, _decayReleaseRes, _sustainRes, _resolucao;
 
     QLineSeries * pontosEnviados;
