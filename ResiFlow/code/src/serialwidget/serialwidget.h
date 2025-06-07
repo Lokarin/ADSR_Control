@@ -7,6 +7,8 @@
 #include <QLabel>
 #include <QComboBox>
 #include <QPushButton>
+#include <QSerialPort>
+#include <QSerialPortInfo>
 
 QT_USE_NAMESPACE
 
