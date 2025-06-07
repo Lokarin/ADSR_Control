@@ -3,8 +3,8 @@
 ; File:     main.asm
 ; Author:   Gabriel Garcia; Henrique Onuki
 ; Created:  2025-04-19
-; Modified: 2025-05-29
-; Version:  1.i
+; Modified: 2025-06-03
+; Version:  1.j
 ; Notes:    Controle de Digipots. Fcpu = 16 MHz.
 ; ------------------------------------------------------------------------------
 
@@ -30,58 +30,20 @@
 .def   sustainByte                 = R4
 
 ; ------------------------------------------------------------------------------
+; equal definitions
+; ------------------------------------------------------------------------------
+
+.equ digipot_control_mask = 0b11111101
+
+; ------------------------------------------------------------------------------
 ; Interrupt vectors
 ; ------------------------------------------------------------------------------
 .org 0x0000
     JMP resetHandler
-.org INT0addr
-    JMP int0Handler
-.org INT1addr
-    JMP int1Handler
 .org PCI0addr
     JMP pcint0Handler
-.org PCI1addr
-    JMP pcint1Handler
-.org PCI2addr
-    JMP pcint2Handler
-.org WDTaddr
-    JMP wdtHandler
-.org OC2Aaddr
-    JMP timer2CompAHandler
-.org OC2Baddr
-    JMP timer2CompBHandler
-.org OVF2addr
-    JMP timer2OvfHandler
-.org ICP1addr
-    JMP timer1CaptureHandler
-.org OC1Aaddr
-    JMP timer1CompAHandler
-.org OC1Baddr
-    JMP timer1CompBHandler
-.org OVF1addr
-    JMP timer1OvfHandler
-.org OC0Aaddr
-    JMP timer0CompAHandler
-.org OC0Baddr
-    JMP timer0CompBHandler
-.org OVF0addr
-    JMP timer0OvfHandler
-.org SPIaddr
-    JMP spiHandler
 .org URXCaddr
     JMP usartRxHandler
-.org UDREaddr
-    JMP usartDataEmptyHandler
-.org UTXCaddr
-    JMP usartTxHandler
-.org ADCCaddr
-    JMP adcHandler
-.org ERDYaddr
-    JMP eepromHandler
-.org ACIaddr
-    JMP analogCompHandler
-.org TWIaddr
-    JMP twiHandler
 .org SPMRaddr
     JMP flashHandler
 .org INT_VECTORS_SIZE
@@ -93,16 +55,16 @@ main:
 
 ; =====================[ INIT: Timer0 para delay de 1us ]======================
 
-init_timer0_delay_us:
+init_timer0_delay:
 
-    ; Modo CTC + prescaler 8
+    ; Modo CTC + prescaler 1
     LDI tempReg, (1 << WGM01)
     OUT TCCR0A, tempReg
 
-    LDI tempReg, (1 << CS01)
+    LDI tempReg, (1 << CS00)
     OUT TCCR0B, tempReg
 
-    LDI tempReg, 1
+    LDI tempReg, 3
     OUT OCR0A, tempReg
 
 ; ===================[ INIT: Timer1 como trigger do ADSR ]=====================
@@ -131,20 +93,12 @@ init_timer1_adsr_trigger:
 
 init_timer2_vca_input:
 
-    ; PB3 como saída
-    SBI DDRB, PB3
+    ; Configura origem inicial do VCA input
+    RCALL jack_detector_input
 
-    ; OC1A (PB3) como toggle + Modo CTC
-    LDI tempReg, (1<<COM2A0) | (1<<WGM21)
-    STS TCCR2A, tempReg
-
-    ; prescaler 1024
-    LDI tempReg, (1<<CS22) | (1<<CS21) 
-    STS TCCR2B, tempReg
-
-    ; Inicialização padrão com 1kHz
-    LDI tempReg, 7
-    STS OCR2A, tempReg
+    ; Inicialização padrão com 130Hz
+    LDI   tempReg, 238
+    STS   OCR2A, tempReg
 
 ; ==========================[ INIT: USART 9600 bps ]===========================
 
@@ -159,21 +113,42 @@ init_usart:
     LDI tempReg, (1 << UCSZ01) | (1 << UCSZ00)
     STS UCSR0C, tempReg
 
-    ; Habilita pino RX (PD0)
-    LDI tempReg, (1 << RXEN0)
+    ; Habilita pino RX (PD0) e interrupção
+    LDI tempReg, (1 << RXC0) | (1 << RXEN0)
     STS UCSR0B, tempReg
+
+; ======================[ INIT: Configurações da PCINT0 ]======================
+
+init_PCINT0:
+
+    ; Habilita o grupo de interrupção (PCINT0-PCINT7)
+    LDI tempReg, (1 << PCIE0)
+    STS PCICR, tempReg
+
+    ; Ativando interrupção em PCIN7
+    LDI tempReg, (1 << PCINT4)
+    STS PCMSK0, tempReg
+
+    ; Habilita PB4 como entrada com pull-up interno
+    CBI DDRB, PB4
+    SBI PORTB, PB4
 
 ; =====================[ INIT: Configurações das portas D ]====================
 
-main_start:
-init_ports:
+init_digipot_control_DDRD:
 
-    LDI tempReg, 0xFF
+    LDI tempReg, digipot_control_mask
     OUT DDRD, tempReg                           ; Habilita todas as portas D como saída
 
-; =====================[ LOOP: loop principal do programa ]====================
+; ===========[ INIT: Zera digipots após inicializalização das portas]==========
 
-main_loop:
+init_digipots_reset:
+
+    RCALL reset_all_digipots
+
+; =======[ INIT: Configura estado inicial dos Regs de controle e PORTD ]=======
+
+init_PORTD_and_control_regs:
 
     LDI digiPotSelectorReg, 0b10000000          ; PD7, PD6, PD5, PD4 = habilita o Chip Select dos digipots
     LDI counterBytesLeft, 0b00000100            ; Quando counterBytesLeft alcançar 0 o código retorna para main_loop
@@ -181,9 +156,148 @@ main_loop:
     LDI tempReg, 0b11110000
     OUT PORTD, tempReg                          ; Inicia todas as saídas com 0V menos PD7, PD6, PD5, PD4 (Chip Select)
 
-; ==================[ USART: recepção de bytes ]===============================
+; ===================[ INIT: Ativa interrupções globais ]======================
 
-read_adsr_and_timer_bytes:
+    SEI
+
+; =====================[ MAIN LOOP: espera por bytes ]=========================
+
+main_loop:
+
+waiting_for_bytes:
+    RJMP waiting_for_bytes
+
+; ======================[ SUB ROTINA: Espera e lê byte ]=======================
+
+usart_receive_byte:
+USART_read:
+    LDS  tempReg, UCSR0A
+    SBRS tempReg, RXC0
+    RJMP USART_read
+    LDS  tempReg, UDR0
+    RET
+
+; ================[ SUB ROTINA: zera todos os potenciômetros ]=================
+
+reset_all_digipots:
+    ; Configura todos os potenciômetros para começarem do valor mais baixo
+    ; de resistência após receber os bytes correspondentes a cada fase
+
+    LDI tempReg, 0b00001000             ; Ativa todos CS(chip select) e configura a resistência para baixo(down)
+    OUT PORTD, tempReg
+
+    LDI loopReg, 0b1101001              ; Carrega loopReg com 105 (garante que haverá mais que 100 ciclos)
+
+digipot_reset_loop:
+
+    ORI   tempReg, 0b00000100           ; Borda de subida
+    OUT   PORTD, tempReg
+    ;RCALL delay100
+    RCALL delay_250n
+
+    ANDI  tempReg, 0b11111011           ; Borda de descida
+    OUT   PORTD, tempReg
+    ;RCALL delay100
+    RCALL delay_250n
+
+    DEC   loopReg                       ; Quando loopReg atingir zero o reset dos potenciômetros está completo
+    BRNE  digipot_reset_loop
+
+    RET
+
+; ===============[ SUB ROTINA: Ativa ou desativa VCA input ]===================
+
+jack_detector_input:
+
+    IN   tempReg, PINB ; Carrega o estado dos pinos atuais
+    ANDI tempReg, 0b00010000 ; Isola o bit PB4
+
+    SBRS tempReg, PB4
+    RJMP activate_vca_input
+    RJMP deactivate_vca_input
+
+deactivate_vca_input:
+
+    ; Desliga Timer2
+    LDI  tempReg, 0
+    STS  TCCR2B, tempReg
+
+    LDI  tempReg, 0
+    STS  TCCR2A, tempReg
+
+    ; Configura PB3 como entrada
+    CBI  DDRB, PB3
+    ; Desativa o pull-up interno
+    CBI  PORTB, PB3
+    RJMP jack_detector_input_end
+
+activate_vca_input:
+
+    ; PB3 como saída
+    SBI DDRB, PB3
+
+    ; OC1A (PB3) como toggle + Modo CTC
+    LDI tempReg, (1<<COM2A0) | (1<<WGM21)
+    STS TCCR2A, tempReg
+
+    ; prescaler 256
+    LDI tempReg, (1<<CS22) | (1<<CS21)
+    STS TCCR2B, tempReg
+
+jack_detector_input_end:
+
+    RET
+
+; ------------------------------------------------------------------------------
+; Function definitions
+; ------------------------------------------------------------------------------
+
+delay100:
+    NOP                     ; Comment line for CALL / Uncomment for RCALL
+    LDI     R18, 9
+    LDI     R19, 30
+    LDI     R20, 226
+delay100Loop:
+    DEC     R20
+    BRNE    delay100Loop
+    DEC     R19
+    BRNE    delay100Loop
+    DEC     R18
+    BRNE    delay100Loop
+    RJMP    PC + 1
+    RET
+
+delay_250n:
+
+    ; Zera contador TCNT0
+    CLR R18
+    OUT TCNT0, R18
+
+delay_250n_polling:
+
+    ; Espera OCF0A == 3
+    IN   R18, TIFR0
+    SBRS R18, OCF0A
+    RJMP delay_250n_polling
+
+    ; Limpa a flag de compare A (escreve 1 para limpar)
+    LDI  R18, (1 << OCF0A)
+    OUT  TIFR0, R18
+
+    RET
+
+; ------------------------------------------------------------------------------
+; Interrupt handlers
+; ------------------------------------------------------------------------------
+pcint0Handler:
+    CLI
+    RCALL jack_detector_input
+    RETI
+
+usartRxHandler:
+    CLI
+
+    read_adsr_and_timer_bytes:
 
     RCALL usart_receive_byte
     MOV   attackByte, tempReg
@@ -222,31 +336,7 @@ set_vca_input_freq:
 
 ; =================[ DIGIPOTS: zera todos os potenciômetros ]==================
 
-reset_all_digipots:
-    ; Seta todos os potenciômetros para começarem do valor mais baixo
-    ; de resistência após receber os bytes correspondentes a cada fase
-
-    LDI tempReg, 0b00001000             ; Ativa todos CS(chip select) e seta a resistência para baixo(down)
-    OUT PORTD, tempReg
-
-    LDI loopReg, 0b1101001              ; Carrega loopReg com 105 (garante que haverá mais que 100 ciclos)
-
-digipot_reset_loop:
-
-    ORI   tempReg, 0b00000100           ; Borda de subida
-    OUT   PORTD, tempReg
-    ;RCALL delay100
-    RCALL delay_1us
-
-    ANDI  tempReg, 0b11111011           ; Borda de descida
-    OUT   PORTD, tempReg
-    ;RCALL delay100
-    RCALL delay_1us
-
-    DEC   loopReg                       ; Quando loopReg for zerado o reset dos potenciômetros está completo
-    BREQ  load_first_phase_byte
-
-    RJMP  digipot_reset_loop
+    RCALL reset_all_digipots
 
 ; ===============[ DIGIPOTS: Atualiza valores dos digipots ]==================
 
@@ -268,8 +358,8 @@ digipot_step_up_start:
     OR    tempReg, digiPotSelectorReg
     OUT   PORTD, tempReg
 
-    ;RCALL delay500
-    RCALL delay_1us
+    ;RCALL delay100
+    RCALL delay_250n
 
 digipot_step_up_loop:
     ; Ativa e desativa o PD2(digipots CLK) enquanto o número de steps(ou loops) armazenados em loopReg e != 0
@@ -277,14 +367,14 @@ digipot_step_up_loop:
     ORI   tempReg, 0b00000100           ; Borda de subida
     OUT   PORTD, tempReg
 
-    ;RCALL delay500
-    RCALL delay_1us
+    ;RCALL delay100
+    RCALL delay_250n
 
     ANDI  tempReg, 0b11111011           ; Borda de descida
     OUT   PORTD, tempReg
 
-    ;RCALL delay500
-    RCALL delay_1us
+    ;RCALL delay100
+    RCALL delay_250n
 
     DEC   loopReg
     BREQ  next_adsr_phase               ; Se loop foi finalizado jump para a próxima fase do ADSR
@@ -304,9 +394,9 @@ prepare_next_phase:
     ; Ativa o próximo digipot
     LSR  digiPotSelectorReg
 
-    ; Se counterBytesLeft == 0 jump para "fim" label
+    ; Se counterBytesLeft == 0 jump para "end" label
     CPI  counterBytesLeft, 0b00000000
-    BREQ fim
+    BREQ end
 
     ; Se counterBytesLeft == 3 jump para load_hold_byte label
     CPI  counterBytesLeft, 0b00000011
@@ -335,99 +425,15 @@ load_sustain_byte:
     MOV  tempReg, sustainByte
     RJMP digipot_step_up_start
 
-fim:
+end:
 
-    RJMP main_loop
+    LDI digiPotSelectorReg, 0b10000000          ; PD7, PD6, PD5, PD4 = habilita o Chip Select dos digipots
+    LDI counterBytesLeft, 0b00000100            ; Quando counterBytesLeft alcançar 0 o código retorna para main_loop
 
-; ======================[ SUB ROTINA: Espera e lê byte ]=======================
+    LDI tempReg, 0b11110000
+    OUT PORTD, tempReg                          ; Inicia todas as saídas com 0V menos PD7, PD6, PD5, PD4 (Chip Select)
 
-usart_receive_byte:
-USART_read:
-    LDS  tempReg, UCSR0A
-    SBRS tempReg, RXC0
-    RJMP USART_read
-    LDS  tempReg, UDR0
-    RET
-
-; ------------------------------------------------------------------------------
-; Function definitions
-; ------------------------------------------------------------------------------
-delay100:
-    NOP                     ; Comment line for CALL / Uncomment for RCALL
-    LDI     R18, 9
-    LDI     R19, 30
-    LDI     R20, 226
-delay100Loop:
-    DEC     R20
-    BRNE    delay100Loop
-    DEC     R19
-    BRNE    delay100Loop
-    DEC     R18
-    BRNE    delay100Loop
-    RJMP    PC + 1
-    RET
-
-delay_1us:
-
-    ; Zera contador TCNT0
-    CLR R18
-    OUT TCNT0, R18
-
-delay_1us_polling:
-
-    ; Espera OCF0A == 1
-    IN   R18, TIFR0
-    SBRS R18, OCF0A
-    RJMP delay_1us_polling
-
-    ; Limpa a flag de compare A (escreve 1 para limpar)
-    LDI  R18, (1 << OCF0A)
-    OUT  TIFR0, R18
-
-    RET
-
-delay500:
-    NOP                     ; Comment line for CALL / Uncomment for RCALL
-    LDI     R18, 41
-    LDI     R19, 150
-    LDI     R20, 125
-delay500Loop:
-    DEC     R20
-    BRNE    delay500Loop
-    DEC     R19
-    BRNE    delay500Loop
-    DEC     R18
-    BRNE    delay500Loop
-    NOP
-    RET
-
-; ------------------------------------------------------------------------------
-; Interrupt handlers
-; ------------------------------------------------------------------------------
-int0Handler:
-int1Handler:
-pcint0Handler:
-pcint1Handler:
-pcint2Handler:
-wdtHandler:
-timer2CompAHandler:
-timer2CompBHandler:
-timer2OvfHandler:
-timer1CaptureHandler:
-timer1CompAHandler:
-timer1CompBHandler:
-timer1OvfHandler:
-timer0CompAHandler:
-timer0CompBHandler:
-timer0OvfHandler:
-spiHandler:
-usartRxHandler:
-usartDataEmptyHandler:
-usartTxHandler:
-adcHandler:
-eepromHandler:
-analogCompHandler:
-twiHandler:
+    RETI
 flashHandler:
     RETI
 resetHandler:
