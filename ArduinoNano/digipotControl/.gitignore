@@ -73,4 +73,5 @@ Thumbs.db
 .pch/
 .rcc/
 .uic/
+.vscode/
 /build*/
