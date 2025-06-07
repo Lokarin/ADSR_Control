@@ -14,6 +14,7 @@
 #include "chartwidget/chartwidget.h"
 #include "customknob/customknob.h"
 #include "serialwidget/serialwidget.h"
+#include "presetwidget/presetwidget.h"
 
 class ResiFlow : public QMainWindow
 {

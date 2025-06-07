@@ -43,6 +43,10 @@ ResiFlow::ResiFlow(QWidget *parent)
     // Grupo de conexão
     SerialWidget * conexaoGroup = new SerialWidget;
 
+    // teste //
+    PresetWidget * teste = new PresetWidget;
+    ///////////
+
     // Cria widget do grafico
     QGroupBox * chartGroup = new QGroupBox();
     QHBoxLayout * chartLayout = new QHBoxLayout();
@@ -110,6 +114,7 @@ ResiFlow::ResiFlow(QWidget *parent)
     layoutMainEsquerda->addWidget(trayGroup);
 
     layoutMainDireita->addWidget(conexaoGroup);
+    layoutMainDireita->addWidget(teste);
     
     // Connects
     connect(botao, &QPushButton::clicked, this, [=]() {
