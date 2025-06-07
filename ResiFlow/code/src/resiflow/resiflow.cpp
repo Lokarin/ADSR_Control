@@ -126,6 +126,11 @@ ResiFlow::ResiFlow(QWidget *parent)
            freqLabel->setText(QString("BPM: %1").arg(freqLabels[freqIndex]));
            getKnobValues();
     });
+
+    connect(conexaoGroup, &SerialWidget::statusMessage, this, [this](const QString &msg){
+        status->showMessage(msg);
+    });
+
 }
 
 void ResiFlow::getKnobValues(){

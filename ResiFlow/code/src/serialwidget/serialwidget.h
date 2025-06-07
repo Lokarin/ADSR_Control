@@ -26,8 +26,14 @@ private:
     QLabel * titleLabel;
     QPushButton * connectButton;
     QPushButton * refreshButton;
+    QSerialPort * serial;
 
     void init();
+    void refreshPorts();
+    void connectSerial();
+
+signals:
+    void statusMessage(const QString &message);
 };
 
 #endif // SERIALWIDGET_H
