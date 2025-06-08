@@ -15,23 +15,7 @@
 
 using namespace std;
 
-int main(int argc, char *argv[]) {
-    if (argc != 7) {
-       cerr << "OTARIO, É ASSIM: " << argv[0] << " atkSteps holdSteps susSteps decRelSteps triggerBPM vcaInputFreq\n";
-       return 1;
-    }
-
-    int atkSteps           = atoi(argv[1]);
-    int holdSteps          = atoi(argv[2]);
-    int susSteps           = atoi(argv[3]);
-    int decRelSteps        = atoi(argv[4]);
-    int triggerBpm         = atoi(argv[5]);
-    int vcaInputFrequency  = atoi(argv[6]);
-
-    const int F_CPU = 16000000;
-    const int ocr1aPreScaler = 256;
-    const int ocr2aPreScaler = 256;
-
+int main() {
 #ifdef _WIN32
     HANDLE hSerial = CreateFile("COM2", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
@@ -98,6 +82,24 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 #endif
+
+    while (true) {
+        int atkSteps, susSteps, holdSteps, decRelSteps, triggerBpm, vcaInputFrequency, ocr1aValue, ocr2aValue;
+        const int F_CPU = 16000000;
+        const int ocr1aPreScaler = 256, ocr2aPreScaler = 256;
+
+        cout << "Attack - passos (0-100): ";                 cin >> atkSteps;
+
+        cout << "Hold - passos (0-100): ";                   cin >> holdSteps;
+
+        cout << "Sustain - passos (0-100): ";                cin >> susSteps;
+
+        cout << "Decay/Release - passos (0-100): ";          cin >> decRelSteps;
+
+        cout << "Trigger BPM (60, 100, 120, 150, 180): ";    cin >> triggerBpm;
+
+        cout << "VCA sign in frequency: ";                   cin >> vcaInputFrequency;
+
         float triggerOscFreq;
         switch (triggerBpm) {
         case 60:
@@ -122,8 +124,10 @@ int main(int argc, char *argv[]) {
 
         double temp;
         temp = ( (double)(F_CPU) / (2 * ocr1aPreScaler * triggerOscFreq) ) - 1;
-        int ocr1aValue = static_cast<int>(round((F_CPU / (2.0 * ocr1aPreScaler * triggerOscFreq)) - 1));
-        int ocr2aValue = static_cast<int>(round((F_CPU / (2.0 * ocr2aPreScaler * vcaInputFrequency)) - 1));
+        ocr1aValue = static_cast<int>(round(temp));
+        
+        temp = ( (double)(F_CPU) / (2 * ocr2aPreScaler * vcaInputFrequency) ) - 1;
+        ocr2aValue = static_cast<int>(round(temp));
 
         byte Atk         = (atkSteps);
         byte Hold        = (holdSteps);
@@ -149,7 +153,6 @@ int main(int argc, char *argv[]) {
                  << ", VCA_FREQ=0x" << (int)VcaInput
                  << " (" << dec << bytesWritten << " bytes)" << endl;
         }
-    CloseHandle(hSerial);
 #else
         ssize_t bytesWritten = write(serialPort, passos, sizeof(passos));
         if (bytesWritten < 0) {
@@ -164,8 +167,15 @@ int main(int argc, char *argv[]) {
                  << ", VCA=0x" << (int)VcaInput
                  << " (" << dec << bytesWritten << " bytes)" << endl;
         }
+#endif
+    }
+
+#ifdef _WIN32
+    CloseHandle(hSerial);
+#else
     close(serialPort);
 #endif
-
     return 0;
 }
+
+

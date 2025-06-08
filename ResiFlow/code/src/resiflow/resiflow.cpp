@@ -59,7 +59,7 @@ ResiFlow::ResiFlow(QWidget *parent)
     trayGroup->setMaximumHeight(300);
     QHBoxLayout * knobTray = new QHBoxLayout(trayGroup);
 
-    QStringList knobNames = {"Attack", "Decay/Release", "Sustain", "Hold"};
+    QStringList knobNames = {"Attack", "Hold", "Decay/Release", "Sustain"};
     for (const QString &name : knobNames) {
         // Layout vertical para cada set de knobs+txt
         QWidget * knobTextContainer = new QWidget();

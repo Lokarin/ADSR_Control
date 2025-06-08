@@ -75,7 +75,7 @@ void SerialWidget::connectSerial() {
     }
 
     serial->setPortName(portName);
-    serial->setBaudRate(QSerialPort::Baud115200);
+    serial->setBaudRate(QSerialPort::Baud9600);
     serial->setDataBits(QSerialPort::Data8);
     serial->setParity(QSerialPort::NoParity);
     serial->setStopBits(QSerialPort::OneStop);
@@ -147,6 +147,16 @@ void SerialWidget::sendAHDSRData(int atk, int hold, int sus, int rel, int bpm, i
         emit statusMessage("Erro ao enviar os dados: " + serial->errorString());
     } else {
         emit statusMessage("Dados enviados com sucesso!");
+
+        qDebug().noquote().nospace()
+        << "Enviado: "
+        << "ATK=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
+        << "HOLD=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0') << ", "
+        << "SUS=0x" << QString::number((quint8)data[2], 16).rightJustified(2, '0') << ", "
+        << "DEC/REL=0x" << QString::number((quint8)data[3], 16).rightJustified(2, '0') << ", "
+        << "TRIG=0x" << QString::number((quint8)data[4], 16).rightJustified(2, '0') << ", "
+        << "VCA=0x" << QString::number((quint8)data[6], 16).rightJustified(2, '0') << " ("
+        << data.size() << " bytes)";
     }
 }
 
