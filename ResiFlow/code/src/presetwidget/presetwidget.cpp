@@ -36,6 +36,7 @@ void PresetWidget::init() {
     connect(savePresetButton, &QPushButton::clicked, this, &PresetWidget::savePreset);
     connect(deletePresetButton, &QPushButton::clicked, this, &PresetWidget::deletePreset);
     connect(loadPresetButton, &QPushButton::clicked, this, &PresetWidget::loadPreset);
+    connect(presetSelector, &QComboBox::currentIndexChanged, this, &PresetWidget::loadPreset);
 
     // Carrega a lista de presets na inicialização
     updatePresetList();
