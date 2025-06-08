@@ -7,31 +7,39 @@ SerialWidget::SerialWidget(QWidget *parent)
 }
 
 void SerialWidget::init() {
+    // main layout do widget
     mainLayout = new QVBoxLayout(this);
     this->setLayout(mainLayout);
 
+    // nome em cima do widget
     titleLabel = new QLabel("Conexão Serial");
     titleLabel->setAlignment(Qt::AlignHCenter);
     mainLayout->addWidget(titleLabel);
 
+    // layout horizontal para os botoes e combo
     layoutInterface = new QHBoxLayout;
 
+    // combo para picker das portas
     serialPicker = new QComboBox;
     serialPicker->addItems({"tty0", "tty1", "tt2"});
     layoutInterface->addWidget(serialPicker);
 
+    // botao de refres
     refreshButton = new QPushButton("Atualizar");
     layoutInterface->addWidget(refreshButton);
 
+    // botao de connect/disconnect
     connectButton = new QPushButton("Conectar");
     layoutInterface->addWidget(connectButton);
 
     mainLayout->addLayout(layoutInterface);
 
+    // iniciando objeto serial
     serial = new QSerialPort(this);
 
     refreshPorts();
 
+    // Connects
     connect(refreshButton, &QPushButton::clicked, this, [=]() {
             refreshPorts();
     });
@@ -61,6 +69,9 @@ void SerialWidget::refreshPorts() {
 }
 
 void SerialWidget::connectSerial() {
+    // se a porta está aberta, mudamos o texto
+    // do botao, mudamos o texto da status
+    // para refletir isso
     if (serial->isOpen()) {
         serial->close();
         connectButton->setText("Conectar");
@@ -68,12 +79,15 @@ void SerialWidget::connectSerial() {
         return;
     }
 
+    // se por alguma razao o picker estiver vazio
+    // provavelmente a porta é inválida
     QString portName = serialPicker->currentText();
     if (portName.isEmpty() || portName == "Nenhuma porta disponível") {
         emit statusMessage("Porta inválida.");
         return;
     }
 
+    // configuracoes da comunicacao serial
     serial->setPortName(portName);
     serial->setBaudRate(QSerialPort::Baud9600);
     serial->setDataBits(QSerialPort::Data8);
@@ -81,6 +95,8 @@ void SerialWidget::connectSerial() {
     serial->setStopBits(QSerialPort::OneStop);
     serial->setFlowControl(QSerialPort::NoFlowControl);
 
+    // se a porta estiver em uso, mudamos os nomes do 
+    // botao e do status para mostrar isso
     if (serial->open(QIODevice::ReadWrite)) {
         connectButton->setText("Desconectar");
         emit statusMessage("Conectado na porta " + portName);
@@ -95,13 +111,14 @@ void SerialWidget::sendAHDSRData(int atk, int hold, int sus, int rel, int bpm, i
         return;
     }
 
-    qDebug() << "Atk: " << atk << "\n";
-    qDebug() << "Hold: " << hold << "\n";
-    qDebug() << "Sust: " << sus << "\n";
-    qDebug() << "Rele: " << rel << "\n";
-    qDebug() << "BPM: " << bpm << "\n";
-    qDebug() << "Freq: " << freq << "\n";
+    //qDebug() << "Atk: " << atk << "\n";
+    //qDebug() << "Hold: " << hold << "\n";
+    //qDebug() << "Sust: " << sus << "\n";
+    //qDebug() << "Rele: " << rel << "\n";
+    //qDebug() << "BPM: " << bpm << "\n";
+    //qDebug() << "Freq: " << freq << "\n";
 
+    // bpm -> Hz
     float triggerOsqFreq;
     switch (bpm) {
         case 60:
@@ -128,9 +145,11 @@ void SerialWidget::sendAHDSRData(int atk, int hold, int sus, int rel, int bpm, i
     constexpr int ocr1aPreScaler = 1024;
     constexpr int ocr2aPreScaler = 256;
 
+    // calculando o valor dee ocr1 e 2
     int ocr1aValue = static_cast<int>(round((F_CPU / (2.0 * ocr1aPreScaler * triggerOsqFreq)) - 1));
     int ocr2aValue = static_cast<int>(round((F_CPU / (2.0 * ocr2aPreScaler * freq)) - 1));
 
+    // adicionando os valores em forma de bits
     QByteArray data;
     data.append(static_cast<char>(atk));
     data.append(static_cast<char>(hold));
@@ -142,21 +161,24 @@ void SerialWidget::sendAHDSRData(int atk, int hold, int sus, int rel, int bpm, i
 
     data.append(static_cast<char>(ocr2aValue));
 
+    // enviando os valores
     qint64 bytesEscritos = serial->write(data);
+
+    // debug avisando se deu certo ou errado
     if (bytesEscritos == -1) {
         emit statusMessage("Erro ao enviar os dados: " + serial->errorString());
     } else {
         emit statusMessage("Dados enviados com sucesso!");
 
-        qDebug().noquote().nospace()
-        << "Enviado: "
-        << "ATK=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
-        << "HOLD=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0') << ", "
-        << "SUS=0x" << QString::number((quint8)data[2], 16).rightJustified(2, '0') << ", "
-        << "DEC/REL=0x" << QString::number((quint8)data[3], 16).rightJustified(2, '0') << ", "
-        << "TRIG=0x" << QString::number((quint8)data[4], 16).rightJustified(2, '0') << ", "
-        << "VCA=0x" << QString::number((quint8)data[6], 16).rightJustified(2, '0') << " ("
-        << data.size() << " bytes)";
+        //qDebug().noquote().nospace()
+        //<< "Enviado: "
+        //<< "ATK=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
+        //<< "HOLD=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0') << ", "
+        //<< "SUS=0x" << QString::number((quint8)data[2], 16).rightJustified(2, '0') << ", "
+        //<< "DEC/REL=0x" << QString::number((quint8)data[3], 16).rightJustified(2, '0') << ", "
+        //<< "TRIG=0x" << QString::number((quint8)data[4], 16).rightJustified(2, '0') << ", "
+        //<< "VCA=0x" << QString::number((quint8)data[6], 16).rightJustified(2, '0') << " ("
+        //<< data.size() << " bytes)";
     }
 }
 
