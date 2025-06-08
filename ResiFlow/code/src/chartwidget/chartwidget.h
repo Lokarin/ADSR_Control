@@ -16,7 +16,7 @@ class ChartWidget : public QChartView {
 public:
     ChartWidget(QWidget *parent = nullptr);
     ~ChartWidget();
-    void updateChartSim(int A, int H, int DR, int S, float freq, double maxVol);
+    void updateChartSim(int atk, int hold, int sus, int rel, float freq, double maxVol);
     void updatePontosReais();
 
 private:

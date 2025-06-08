@@ -70,14 +70,14 @@ void ChartWidget::setupChartStyling() {
     setChart(chart);
 }
 
-void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double _amplitudeMax) {
+void ChartWidget::updateChartSim(int atk, int hold, int sus, int rel, float freq, double _amplitudeMax) {
     //qDebug() << "######################################" << "\n";
     //qDebug() << "Frequencia: " << freq << "\n";
 
-    _attackRes = A;
-    _holdRes = H;
-    _decayReleaseRes = DR;
-    _sustainRes = S;
+    _attackRes = atk;
+    _holdRes = hold;
+    _decayReleaseRes = rel;
+    _sustainRes = sus;
 
     //qDebug() << "Resistencia Attack: " << _attackRes << "\n";
     //qDebug() << "Resistencia Hold: " << _holdRes << "\n";

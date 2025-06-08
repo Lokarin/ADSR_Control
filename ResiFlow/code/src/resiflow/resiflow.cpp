@@ -154,8 +154,8 @@ void ResiFlow::updateChart(){
     chart->updateChartSim(
             (data[0]*100)+1,
             (data[1]*100)+1, 
-            (data[3]*100)+1, 
             (data[2]*100)+1, 
+            (data[3]*100)+1, 
             data[4], 
             5);
 }
