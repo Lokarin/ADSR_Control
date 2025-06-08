@@ -133,19 +133,38 @@ void ChartWidget::holdCalculation(){
 
 void ChartWidget::attackCalculation() {
     double v = 0.0;
+    pontosPreview->clear(); // remove se já estiver limpa antes
 
+    // Estimativa de tempo necessário até atingir sustain (caso necessário)
+    double tempoFinalAttack = _holdTime;
+    double t, step;
+
+    // Primeira tentativa com tempo padrão
     for (int i = 0; i < _resolucao; ++i) {
-        // Calcula a fração do tempo atual
-        double t = _holdTime * (static_cast<double>(i) / (_resolucao - 1));
-
-        // Fórmula do capacitor carregando
+        t = _holdTime * (static_cast<double>(i) / (_resolucao - 1));
         v = _amplitudeMax * (1.0 - exp(-t / (_attackRes * 10e-6)));
 
-        // Adiciona o ponto na série
         pontosPreview->append(t, v);
     }
 
     _maxAttackVolt = v;
+
+    // Se sustain > valor final do attack, significa que o attack deve continuar
+    if (_sustainVolt > _maxAttackVolt) {
+        double vAttack = _maxAttackVolt;
+        t = _holdTime;
+        step = (_maxTime / 200.0); // passo pequeno para interpolação suave
+
+        while (vAttack < _sustainVolt && t < _maxTime / 2) {
+            t += step;
+            vAttack = _amplitudeMax * (1.0 - exp(-t / (_attackRes * 10e-6)));
+            pontosPreview->append(t, vAttack);
+        }
+
+        _maxAttackVolt = vAttack;
+        _holdTime = t; // nova duração real da fase de attack
+        _minDecayVolt = vAttack;
+    }
 }
 
 void ChartWidget::sustainCalculation() {
@@ -170,22 +189,20 @@ void ChartWidget::decayCalculation() {
     //qDebug() << "Decay Resistencia: " << _decayReleaseRes << "\n";
     //qDebug() << "_maxTime/2: " << _maxTime/2 << "\n";
     //qDebug() << "_holdTime: " << _holdTime << "\n";
+    //qDebug() << "_sustainVolt: " << _sustainVolt << "\n";
+    //qDebug() << "_maxAttackVolt: " << _maxAttackVolt << "\n";
 
     for (i = 0; i < _resolucao; i++) {
-        // O tempo é de decay começa no final do hold.
-        // Logo somamos o tempo final do hold mais uma 
-        // fracao do tempo até a metade do tempo total.
-        double t = _holdTime + (((_maxTime/2)-_holdTime) * (static_cast<double>(i) / (_resolucao - 1)));
+        double t = _holdTime + (((_maxTime / 2) - _holdTime) * (static_cast<double>(i) / (_resolucao - 1)));
 
-        // Fórmula da descarga em um capacitor, com uma tensão final.
-        // Aqui vale destacar que como t não começa em zero, 
-        // devemos subtrair o tempo de hold de t na fórmula, pois 
-        // do contrário ele vai estar calculando essa curva a 
-        // partir do zero do grafico.
-        v = _sustainVolt + (_maxAttackVolt - _sustainVolt) * exp(-(t - _holdTime) / (_decayReleaseRes * 10e-6) );
+        if (_sustainVolt >= _maxAttackVolt) {
+            return;
+        } else {
+            // Decaimento exponencial padrão
+            v = _sustainVolt + (_maxAttackVolt - _sustainVolt) * exp(-(t - _holdTime) / (_decayReleaseRes * 10e-6));
+        }
 
-        // Adiciona os pontos à série de preview
-        pontosPreview->append(t,v);
+        pontosPreview->append(t, v);
     }
 
     _minDecayVolt = v;
