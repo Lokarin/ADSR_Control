@@ -19,6 +19,14 @@ public:
     SerialWidget(QWidget *parent = nullptr);
     ~SerialWidget();
 
+    void sendAHDSRData(
+            int atk,
+            int hold,
+            int sus,
+            int rel,
+            int bpm,
+            int freq);
+
 private:
     QVBoxLayout * mainLayout;
     QHBoxLayout * layoutInterface;

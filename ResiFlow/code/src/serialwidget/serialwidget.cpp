@@ -89,4 +89,65 @@ void SerialWidget::connectSerial() {
     }
 }
 
+void SerialWidget::sendAHDSRData(int atk, int hold, int sus, int rel, int bpm, int freq) {
+    if (!serial->isOpen()) {
+        emit statusMessage("Erro: Porta serial não está conectada");
+        return;
+    }
+
+    qDebug() << "Atk: " << atk << "\n";
+    qDebug() << "Hold: " << hold << "\n";
+    qDebug() << "Sust: " << sus << "\n";
+    qDebug() << "Rele: " << rel << "\n";
+    qDebug() << "BPM: " << bpm << "\n";
+    qDebug() << "Freq: " << freq << "\n";
+
+    float triggerOsqFreq;
+    switch (bpm) {
+        case 60:
+            triggerOsqFreq = 1;
+            break;
+        case 100:
+            triggerOsqFreq = 1.6;
+            break;
+        case 120:
+            triggerOsqFreq = 2;
+            break;
+        case 150:
+            triggerOsqFreq = 2.5;
+            break;
+        case 180:
+            triggerOsqFreq = 3;
+            break;
+        default:
+            triggerOsqFreq = 1;
+            break;
+    }
+
+    constexpr double F_CPU = 16000000.0;        
+    constexpr int ocr1aPreScaler = 1024;
+    constexpr int ocr2aPreScaler = 256;
+
+    int ocr1aValue = static_cast<int>(round((F_CPU / (2.0 * ocr1aPreScaler * triggerOsqFreq)) - 1));
+    int ocr2aValue = static_cast<int>(round((F_CPU / (2.0 * ocr2aPreScaler * freq)) - 1));
+
+    QByteArray data;
+    data.append(static_cast<char>(atk));
+    data.append(static_cast<char>(hold));
+    data.append(static_cast<char>(sus));
+    data.append(static_cast<char>(rel));
+
+    data.append(static_cast<char>((ocr1aValue >> 8) & 0xFF));
+    data.append(static_cast<char>(ocr1aValue & 0xFF));
+
+    data.append(static_cast<char>(ocr2aValue));
+
+    qint64 bytesEscritos = serial->write(data);
+    if (bytesEscritos == -1) {
+        emit statusMessage("Erro ao enviar os dados: " + serial->errorString());
+    } else {
+        emit statusMessage("Dados enviados com sucesso!");
+    }
+}
+
 SerialWidget::~SerialWidget() = default;

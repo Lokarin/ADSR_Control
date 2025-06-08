@@ -32,6 +32,10 @@ private:
     QLabel * freqLabel;
     QStringList freqLabels;
 
-    void getKnobValues();
+    SerialWidget * conexaoGroup;
+
+    QVector<int> getAHDSRValues();
+    void updateChart();
+    void sendSerialData();
 };
 #endif // RESIFLOW_H

@@ -37,11 +37,11 @@ ResiFlow::ResiFlow(QWidget *parent)
     layoutMainDireita->setAlignment(Qt::AlignTop);
     direita->setLayout(layoutMainDireita);
 
-    // Criar um botao na esquerda
-    QPushButton * botao = new QPushButton("Enviar Curva Atual");
+    // Criar um botao de envio de dados
+    QPushButton * botaoSend = new QPushButton("Enviar Curva Atual");
 
     // Grupo de conexão
-    SerialWidget * conexaoGroup = new SerialWidget;
+    conexaoGroup = new SerialWidget;
 
     // teste //
     PresetWidget * teste = new PresetWidget;
@@ -80,7 +80,7 @@ ResiFlow::ResiFlow(QWidget *parent)
 
         connect(knob, &QDial::valueChanged, this, [=](int value){
             label->setText(QString("%1: %2").arg(name).arg(value));
-            getKnobValues();
+            updateChart();
         });
         
         textKnobLayout->addWidget(knob);
@@ -107,7 +107,7 @@ ResiFlow::ResiFlow(QWidget *parent)
     freqPicker->addWidget(freqSlider, 0, Qt::AlignHCenter);
 
     // Adicionando as coisas aos layouts
-    layoutMainEsquerda->addWidget(botao);
+    layoutMainEsquerda->addWidget(botaoSend);
     chartLayout->addLayout(freqPicker);
     //layoutMainEsquerda->addLayout(chartLayout);
     layoutMainEsquerda->addWidget(chartGroup);
@@ -117,14 +117,15 @@ ResiFlow::ResiFlow(QWidget *parent)
     layoutMainDireita->addWidget(teste);
     
     // Connects
-    connect(botao, &QPushButton::clicked, this, [=]() {
+    connect(botaoSend, &QPushButton::clicked, this, [=]() {
           chart->updatePontosReais(); 
+          sendSerialData();
     });
 
     connect(freqSlider, &QSlider::valueChanged, this, [=]() {
            int freqIndex = freqSlider->value();
            freqLabel->setText(QString("BPM: %1").arg(freqLabels[freqIndex]));
-           getKnobValues();
+           updateChart();
     });
 
     connect(conexaoGroup, &SerialWidget::statusMessage, this, [this](const QString &msg){
@@ -133,16 +134,42 @@ ResiFlow::ResiFlow(QWidget *parent)
 
 }
 
-void ResiFlow::getKnobValues(){
-            int A = (knobs["Attack"]->value()*100)+1;
-            int DR = (knobs["Decay/Release"]->value()*100)+1;
-            int S = (knobs["Sustain"]->value()*100)+1;
-            int H = (knobs["Hold"]->value()*100)+1;
+QVector<int> ResiFlow::getAHDSRValues(){
+            int A = knobs["Attack"]->value();
+            int H = knobs["Hold"]->value();
+            int S = knobs["Sustain"]->value();
+            int DR = knobs["Decay/Release"]->value();
 
-            int freqIndex = freqSlider->value();
-            int freqVal = freqLabels[freqIndex].toInt();
+            int bpmIndex = freqSlider->value();
+            int bpmVal = freqLabels[bpmIndex].toInt();
 
-            chart->updateChartSim(A, H, DR, S, freqVal, 5);
+            int freq = 500;
+
+            return {A, H, S, DR, bpmVal, freq};
+}
+
+void ResiFlow::updateChart(){
+    QVector<int> data = getAHDSRValues();
+
+    chart->updateChartSim(
+            (data[0]*100)+1,
+            (data[1]*100)+1, 
+            (data[3]*100)+1, 
+            (data[2]*100)+1, 
+            data[4], 
+            5);
+}
+
+void ResiFlow::sendSerialData(){
+    QVector<int> data = getAHDSRValues();
+
+    conexaoGroup->sendAHDSRData(
+            data[0], 
+            data[1],
+            data[2],
+            data[3],
+            data[4],
+            data[5]);
 }
 
 ResiFlow::~ResiFlow() = default;
