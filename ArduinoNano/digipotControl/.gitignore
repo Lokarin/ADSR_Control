@@ -1,6 +1,7 @@
 # This file is used to ignore files which are generated
 # ----------------------------------------------------------------------------
 
+Makefile
 *~
 *.autosave
 *.a
@@ -75,3 +76,4 @@ Thumbs.db
 .uic/
 .vscode/
 /build*/
+/libs/
