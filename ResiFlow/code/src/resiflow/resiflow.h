@@ -26,16 +26,19 @@ public:
 private:
     QMap<QString, CustomKnob*> knobs;
     ChartWidget * chart;
-
     QStatusBar * status;
     QSlider * freqSlider;
     QLabel * freqLabel;
     QStringList freqLabels;
-
     SerialWidget * conexaoGroup;
-
     QVector<int> getAHDSRValues();
     void updateChart();
     void sendSerialData();
+    void getKnobValues();
+signals:
+    void parametersChanged(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
+private slots:
+    void onParametersRequest();
+    void onLoadParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
 };
 #endif // RESIFLOW_H

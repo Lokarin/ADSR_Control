@@ -26,14 +26,18 @@ QT_USE_NAMESPACE
         QPushButton * loadPresetButton;
         QComboBox   * presetSelector;
         unsigned int  presetCounter = 0;
-        unsigned int  presetParametersList[5];
-
+        int           presetParametersList[6];
+    private:
         void init();
-    private slots:
         void updatePresetList();
         void loadPreset();
         void savePreset();
         void deletePreset();
+    signals:
+        void parametersRequest();
+        void loadParametersToInterface(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
+    public slots:
+        void receiveParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
     };
 
 #endif // PRESETWIDGET_H

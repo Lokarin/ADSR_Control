@@ -43,9 +43,8 @@ ResiFlow::ResiFlow(QWidget *parent)
     // Grupo de conexão
     conexaoGroup = new SerialWidget;
 
-    // teste //
-    PresetWidget * teste = new PresetWidget;
-    ///////////
+    // PresetWidget
+    PresetWidget * presetWidget = new PresetWidget;
 
     // Cria widget do grafico
     QGroupBox * chartGroup = new QGroupBox();
@@ -114,7 +113,7 @@ ResiFlow::ResiFlow(QWidget *parent)
     layoutMainEsquerda->addWidget(trayGroup);
 
     layoutMainDireita->addWidget(conexaoGroup);
-    layoutMainDireita->addWidget(teste);
+    layoutMainDireita->addWidget(presetWidget);
     
     // Connects
     connect(botaoSend, &QPushButton::clicked, this, [=]() {
@@ -131,6 +130,11 @@ ResiFlow::ResiFlow(QWidget *parent)
     connect(conexaoGroup, &SerialWidget::statusMessage, this, [this](const QString &msg){
         status->showMessage(msg);
     });
+
+    // Conects entre resiflow e presetWidget
+    connect(this, &ResiFlow::parametersChanged, presetWidget, &PresetWidget::receiveParameters);
+    connect(presetWidget, &PresetWidget::parametersRequest, this, &ResiFlow::onParametersRequest);
+    connect(presetWidget, &PresetWidget::loadParametersToInterface, this, &ResiFlow::onLoadParameters);
 
 }
 
@@ -170,6 +174,35 @@ void ResiFlow::sendSerialData(){
             data[3],
             data[4],
             data[5]);
+}
+
+// Envia parâmetros para presetWidget
+void ResiFlow::onParametersRequest() {
+    QVector<int> tempData = getAHDSRValues();
+    emit parametersChanged(tempData[0], tempData[1], tempData[2], tempData[3], tempData[4], tempData[5]);
+}
+
+void ResiFlow::onLoadParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq) {
+    // Atualiza valores dos knobs com o valor do preset selecionado
+
+    knobs["Attack"]->setValue(attack);
+    knobs["Hold"]->setValue(hold);
+    knobs["Sustain"]->setValue(sustain);
+    knobs["Decay/Release"]->setValue(decayRelease);
+
+    // Atualiza slider BPM com o valor do preset selecionado
+    int freqIndex = 0;
+    for (int i = 0; i < freqLabels.size(); ++i) {
+        if (freqLabels[i].toInt() == bpmVal) {
+            freqIndex = i;
+            break;
+        }
+    }
+    freqSlider->setValue(freqIndex);
+    freqLabel->setText(QString("BPM: %1").arg(bpmVal));
+
+    // Atualiza gráfico com o preset selecionado
+    updateChart();
 }
 
 ResiFlow::~ResiFlow() = default;

@@ -35,6 +35,7 @@ void PresetWidget::init() {
     // Connects
     connect(savePresetButton, &QPushButton::clicked, this, &PresetWidget::savePreset);
     connect(deletePresetButton, &QPushButton::clicked, this, &PresetWidget::deletePreset);
+    connect(loadPresetButton, &QPushButton::clicked, this, &PresetWidget::loadPreset);
 
     // Carrega a lista de presets na inicialização
     updatePresetList();
@@ -56,17 +57,35 @@ void PresetWidget::updatePresetList() {
 
 // Método para carregar o preset selecionado da lista
 void PresetWidget::loadPreset() {
+    QString selectedPreset = presetSelector->currentText();
+
+    if (selectedPreset.isEmpty()) {
+        return; // Não há preset selecionado
+    }
+
     QSettings settings("ResiFlow", "Presets");
 
+    // Carregar os valores salvos
+    int attack = settings.value(QString("%1/param1").arg(selectedPreset)).toInt();
+    int hold = settings.value(QString("%1/param2").arg(selectedPreset)).toInt();
+    int sustain = settings.value(QString("%1/param3").arg(selectedPreset)).toInt();
+    int decayRelease = settings.value(QString("%1/param4").arg(selectedPreset)).toInt();
+    int bpmVal = settings.value(QString("%1/param5").arg(selectedPreset)).toInt();
+    int freq = 500;
+
+    // Emitir sinal para atualizar a interface
+    emit loadParametersToInterface(attack, hold, sustain, decayRelease, bpmVal, freq);
 }
 
 // Método para salvar um preset
 void PresetWidget::savePreset() {
+    emit parametersRequest();
+
     QSettings settings("ResiFlow", "Presets");
     presetCounter = settings.value("presetCounter", 0).toInt(); // Carrega zero se presetCounter não existir na máquina
 
-    for (int i = 0; i < 4; ++i) {
-        settings.setValue(QString("preset%1/pot%2").arg(presetCounter + 1).arg(i + 1), 2);
+    for (int i = 0; i < 6; ++i) {
+        settings.setValue(QString("preset%1/param%2").arg(presetCounter + 1).arg(i + 1), presetParametersList[i]);
     }
 
     presetCounter++;
@@ -90,6 +109,16 @@ void PresetWidget::deletePreset() {
     }
 
     updatePresetList();
+}
+
+// Recebe parâmetros de ResiFlow
+void PresetWidget::receiveParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq) {
+    presetParametersList[0] = attack;
+    presetParametersList[1] = hold;
+    presetParametersList[2] = sustain;
+    presetParametersList[3] = decayRelease;
+    presetParametersList[4] = bpmVal;
+    presetParametersList[5] = freq;
 }
 
 PresetWidget::~PresetWidget() = default;
