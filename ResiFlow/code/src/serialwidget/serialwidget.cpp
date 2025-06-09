@@ -142,7 +142,7 @@ void SerialWidget::sendAHDSRData(int atk, int hold, int sus, int rel, int bpm, i
     }
 
     constexpr double F_CPU = 16000000.0;        
-    constexpr int ocr1aPreScaler = 1024;
+    constexpr int ocr1aPreScaler = 256;
     constexpr int ocr2aPreScaler = 256;
 
     // calculando o valor dee ocr1 e 2

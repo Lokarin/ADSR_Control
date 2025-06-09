@@ -174,7 +174,7 @@ void ChartWidget::sustainCalculation() {
     //qDebug() << "Sustain Complement: " << sustainRComp << "\n";
 
     // Rv = R1 / R1 + R2
-    double div = static_cast<double>(_sustainRes)/(sustainRComp + _sustainRes);
+    double div = static_cast<double>(sustainRComp)/(sustainRComp + _sustainRes);
     //qDebug() << "Divsor de tensao (Resistencia): " << div << "\n";
 
     // Vsus = Vtotal * Rv
