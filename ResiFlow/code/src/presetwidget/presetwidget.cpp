@@ -39,12 +39,16 @@ void PresetWidget::init() {
     connect(presetSelector, &QComboBox::currentIndexChanged, this, &PresetWidget::loadPreset);
 
     // Carrega a lista de presets na inicialização
-    updatePresetList();
+    QSettings settings("ResiFlow", "Presets");
+    presetCounter = settings.value("presetCounter", 0).toInt(); // Carrega zero se presetCounter não existir na máquina
+    if (presetCounter != 0) {
+        updatePresetList(""); // Popula a lista
+        presetSelector->setCurrentIndex(0); // Define o índice para iniciar do primeiro preset
+    }
 }
 
 // Método para atualizar lista de presets
-void PresetWidget::updatePresetList() {
-    QString currentSelection = presetSelector->currentText(); // Salva o preset atual selecionado
+void PresetWidget::updatePresetList(QString presetName) {
     presetSelector->clear();
 
     QSettings settings("ResiFlow", "Presets");
@@ -56,10 +60,10 @@ void PresetWidget::updatePresetList() {
         }
     }
 
-    // Restaura a seleção anterior
-    int index = presetSelector->findText(currentSelection);
-    if (index != -1) {
-        presetSelector->setCurrentIndex(index);
+    int QComboBoxIndex = presetSelector->findText(presetName);
+    qDebug() << QComboBoxIndex << "\n";
+    if (QComboBoxIndex != -1) {
+        presetSelector->setCurrentIndex(QComboBoxIndex);
     }
 }
 
@@ -69,16 +73,14 @@ void PresetWidget::overwritePreset() {
 
     if (selectedPreset.isEmpty()) {
         return; // Não há preset selecionado
+    } else {
+        emit parametersRequest();
+        QSettings settings("ResiFlow", "Presets");
+
+        for (int i = 0; i < 6; ++i) {
+            settings.setValue(QString("%1/param%2").arg(selectedPreset).arg(i + 1), presetParametersList[i]);
+        }
     }
-
-    emit parametersRequest();
-    QSettings settings("ResiFlow", "Presets");
-
-    for (int i = 0; i < 6; ++i) {
-        settings.setValue(QString("%1/param%2").arg(selectedPreset).arg(i + 1), presetParametersList[i]);
-    }
-
-    updatePresetList();
 }
 
 // Método para carregar o preset selecionado da lista
@@ -87,20 +89,21 @@ void PresetWidget::loadPreset() {
 
     if (selectedPreset.isEmpty()) {
         return; // Não há preset selecionado
+    } else {
+        QSettings settings("ResiFlow", "Presets");
+
+        // Carregar os valores salvos
+        int attack = settings.value(QString("%1/param1").arg(selectedPreset)).toInt();
+        int hold = settings.value(QString("%1/param2").arg(selectedPreset)).toInt();
+        int sustain = settings.value(QString("%1/param3").arg(selectedPreset)).toInt();
+        int decayRelease = settings.value(QString("%1/param4").arg(selectedPreset)).toInt();
+        int bpmVal = settings.value(QString("%1/param5").arg(selectedPreset)).toInt();
+        int freq = 500;
+
+        // Emitir sinal para atualizar a interface
+        emit loadParametersToInterface(attack, hold, sustain, decayRelease, bpmVal, freq);
     }
 
-    QSettings settings("ResiFlow", "Presets");
-
-    // Carregar os valores salvos
-    int attack = settings.value(QString("%1/param1").arg(selectedPreset)).toInt();
-    int hold = settings.value(QString("%1/param2").arg(selectedPreset)).toInt();
-    int sustain = settings.value(QString("%1/param3").arg(selectedPreset)).toInt();
-    int decayRelease = settings.value(QString("%1/param4").arg(selectedPreset)).toInt();
-    int bpmVal = settings.value(QString("%1/param5").arg(selectedPreset)).toInt();
-    int freq = 500;
-
-    // Emitir sinal para atualizar a interface
-    emit loadParametersToInterface(attack, hold, sustain, decayRelease, bpmVal, freq);
 }
 
 // Método para salvar um preset
@@ -108,33 +111,44 @@ void PresetWidget::savePreset() {
     emit parametersRequest();
 
     QSettings settings("ResiFlow", "Presets");
-    presetCounter = settings.value("presetCounter", 0).toInt(); // Carrega zero se presetCounter não existir na máquina
+    // Encontra o próximo nome não utilizado
+    int newPresetNumber = 1;
+    while (settings.contains(QString("preset%1/param1").arg(newPresetNumber))) {
+        newPresetNumber++;
+    }
 
     for (int i = 0; i < 6; ++i) {
-        settings.setValue(QString("preset%1/param%2").arg(presetCounter + 1).arg(i + 1), presetParametersList[i]);
+        settings.setValue(QString("preset%1/param%2").arg(newPresetNumber).arg(i + 1), presetParametersList[i]);
     }
 
     presetCounter++;
     settings.setValue("presetCounter", presetCounter);
-    updatePresetList();
+    updatePresetList(QString("preset%1").arg(newPresetNumber));
 }
 
 // Método para deletar um preset
 void PresetWidget::deletePreset() {
-    QSettings settings("ResiFlow", "Presets");
-    presetCounter = settings.value("presetCounter", 0).toInt();
+    QString selectedPreset = presetSelector->currentText();
 
-    if (presetCounter != 0) {
+    if (selectedPreset.isEmpty()) {
+        return; // Não há presets para serem removidos
+    } else {
+        QSettings settings("ResiFlow", "Presets");
+        int index = presetSelector->currentIndex();
+
         settings.beginGroup(presetSelector->currentText());
         settings.remove("");
         settings.endGroup();
         settings.remove(presetSelector->currentText());
 
+        if (index != 0) { // Verifica se é o único preset da QComboBox antes de atualizar
+            updatePresetList(presetSelector->itemText(index - 1)); // Passa o nome do preset anterior
+        } else {
+            updatePresetList(presetSelector->itemText(index + 1)); // Passa o nome do próximo preset
+        }
         presetCounter--;
         settings.setValue("presetCounter", presetCounter);
     }
-
-    updatePresetList();
 }
 
 // Recebe parâmetros de ResiFlow

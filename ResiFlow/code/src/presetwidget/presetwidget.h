@@ -29,7 +29,7 @@ QT_USE_NAMESPACE
         int           presetParametersList[6];
     private:
         void init();
-        void updatePresetList();
+        void updatePresetList(QString presetName);
         void savePreset();
         void deletePreset();
         void overwritePreset();
