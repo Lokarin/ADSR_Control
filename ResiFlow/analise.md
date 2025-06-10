@@ -18,10 +18,6 @@ Pode ser utilizado por entusiastas da área musical e eletrônica para explorar 
 <img src="img/casos_de_uso.png" width="60%">
 </p>
  
-## Diagrama de Domínio do problema
-
-## Diagrama de Domínio do Problema
-
 ## Diagrama de Domínio do Problema
 
 O domínio do problema do ResiFlow envolve a interação entre o usuário e o módulo "AHDSR Potentia". O usuário, através do ResiFlow, pode ajustar todos os parâmetros do envelope (Attack, Hold, Decay, Sustain, Release), bem como controlar dinamicamente a frequência do trigger interno e a frequência do som gerado pelo AHDSR Potentia. O som gerado é fornecido ao VCA, que tem seu volume controlado pelo envelope do próprio AHDSR Potentia.
