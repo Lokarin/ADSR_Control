@@ -12,16 +12,6 @@ Apresenta um sequenciador para ativar o envelope em ordem e tempo definido.
 
 Pode ser utilizado por entusiastas da área musical e eletrônica para explorar um melhor e mais controlado ajuste de parâmetros de um envelope AHDSR.
 
-## Diagrama de Casos de Uso
-
-<p align="center">
-<img src="img/casos_de_uso.png" width="60%">
-</p>
- 
-## Diagrama de Domínio do Problema
-
-O domínio do problema do ResiFlow envolve a interação entre o usuário e o módulo "AHDSR Potentia". O usuário, através do ResiFlow, pode ajustar todos os parâmetros do envelope (Attack, Hold, Decay, Sustain, Release), bem como controlar dinamicamente a frequência do trigger interno e a frequência do som gerado pelo AHDSR Potentia. O som gerado é fornecido ao VCA, que tem seu volume controlado pelo envelope do próprio AHDSR Potentia.
-
 ### Principais entidades:
 - **Usuário:** Pessoa que controla o sistema pelo app.
 - **ResiFlow:** Aplicativo de controle e interface entre usuário e AHDSR Potentia.
@@ -33,6 +23,17 @@ O domínio do problema do ResiFlow envolve a interação entre o usuário e o m�
 - **Parâmetro do AHDSR Potentia:** Attack, Hold, Decay, Sustain, Release, frequência do trigger, frequência do som.
 - **VCA:** Amplificador controlado por tensão, recebe o som e tem o volume modulado pelo envelope do AHDSR Potentia.
 - **Som:** Sinal gerado pelo AHDSR Potentia, enviado ao VCA.
+
+
+## Diagrama de Casos de Uso
+
+<p align="center">
+<img src="img/casos_de_uso.png" width="60%">
+</p>
+ 
+## Diagrama de Domínio do Problema
+
+O domínio do problema do ResiFlow envolve a interação entre o usuário e o módulo "AHDSR Potentia". O usuário, através do ResiFlow, pode ajustar todos os parâmetros do envelope (Attack, Hold, Decay, Sustain, Release), bem como controlar dinamicamente a frequência do trigger interno e a frequência do som gerado pelo AHDSR Potentia. O som gerado é fornecido ao VCA, que tem seu volume controlado pelo envelope do próprio AHDSR Potentia.
 
 ### Relações:
 - O **Usuário** utiliza o **ResiFlow** para ajustar os **Parâmetros do AHDSR Potentia**.
