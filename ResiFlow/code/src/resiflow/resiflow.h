@@ -10,6 +10,8 @@
 #include <QSlider>
 #include <QStatusBar>
 #include <QGroupBox>
+#include <QShortcut>
+#include <QKeyCombination>
 
 #include "chartwidget/chartwidget.h"
 #include "customknob/customknob.h"

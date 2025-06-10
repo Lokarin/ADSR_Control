@@ -131,6 +131,13 @@ ResiFlow::ResiFlow(QWidget *parent)
         status->showMessage(msg);
     });
 
+    // Teste de shortcut
+    QShortcut * shortcut = new QShortcut(QKeySequence("Ctrl+Return"), this);
+    connect(shortcut, &QShortcut::activated, this, [=]() {
+          chart->updatePontosReais(); 
+          sendSerialData();
+    });
+
     // Conects entre resiflow e presetWidget
     connect(this, &ResiFlow::parametersChanged, presetWidget, &PresetWidget::receiveParameters);
     connect(presetWidget, &PresetWidget::parametersRequest, this, &ResiFlow::onParametersRequest);
