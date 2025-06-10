@@ -21,8 +21,8 @@ void PresetWidget::init() {
     presetSelector = new QComboBox(this);
     layoutInterface->addWidget(presetSelector);
 
-    loadPresetButton = new QPushButton("Carregar Preset");
-    layoutInterface->addWidget(loadPresetButton);
+    overwritePresetButton = new QPushButton("Sobescrever Preset");
+    layoutInterface->addWidget(overwritePresetButton);
 
     savePresetButton = new QPushButton("Salvar Preset");
     layoutInterface->addWidget(savePresetButton);
@@ -35,7 +35,7 @@ void PresetWidget::init() {
     // Connects
     connect(savePresetButton, &QPushButton::clicked, this, &PresetWidget::savePreset);
     connect(deletePresetButton, &QPushButton::clicked, this, &PresetWidget::deletePreset);
-    connect(loadPresetButton, &QPushButton::clicked, this, &PresetWidget::loadPreset);
+    connect(overwritePresetButton, &QPushButton::clicked, this, &PresetWidget::overwritePreset);
     connect(presetSelector, &QComboBox::currentIndexChanged, this, &PresetWidget::loadPreset);
 
     // Carrega a lista de presets na inicialização
@@ -44,6 +44,7 @@ void PresetWidget::init() {
 
 // Método para atualizar lista de presets
 void PresetWidget::updatePresetList() {
+    QString currentSelection = presetSelector->currentText(); // Salva o preset atual selecionado
     presetSelector->clear();
 
     QSettings settings("ResiFlow", "Presets");
@@ -54,6 +55,30 @@ void PresetWidget::updatePresetList() {
             presetSelector->addItem(group);
         }
     }
+
+    // Restaura a seleção anterior
+    int index = presetSelector->findText(currentSelection);
+    if (index != -1) {
+        presetSelector->setCurrentIndex(index);
+    }
+}
+
+// Método para sobescrever um preset selecionado da lista
+void PresetWidget::overwritePreset() {
+    QString selectedPreset = presetSelector->currentText();
+
+    if (selectedPreset.isEmpty()) {
+        return; // Não há preset selecionado
+    }
+
+    emit parametersRequest();
+    QSettings settings("ResiFlow", "Presets");
+
+    for (int i = 0; i < 6; ++i) {
+        settings.setValue(QString("%1/param%2").arg(selectedPreset).arg(i + 1), presetParametersList[i]);
+    }
+
+    updatePresetList();
 }
 
 // Método para carregar o preset selecionado da lista

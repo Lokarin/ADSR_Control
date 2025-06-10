@@ -23,16 +23,17 @@ QT_USE_NAMESPACE
         QLabel      * titleLabel;
         QPushButton * savePresetButton;
         QPushButton * deletePresetButton;
-        QPushButton * loadPresetButton;
+        QPushButton * overwritePresetButton;
         QComboBox   * presetSelector;
         unsigned int  presetCounter = 0;
         int           presetParametersList[6];
     private:
         void init();
         void updatePresetList();
-        void loadPreset();
         void savePreset();
         void deletePreset();
+        void overwritePreset();
+        void loadPreset();
     signals:
         void parametersRequest();
         void loadParametersToInterface(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
