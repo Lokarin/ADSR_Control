@@ -69,10 +69,10 @@ ResiFlow::ResiFlow(QWidget *parent)
         //knob->setFixedSize(200,200);
         //knobTray->addWidget(knob);
         knob->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        knob->setValue(100);
+        knob->setValue(0);
 
         // Cria o texto do knob
-        QString textLabel = name+": "+QString::number(100);
+        QString textLabel = name+": "+QString::number(knob->value());
         QLabel * label = new QLabel(textLabel);
         label->setAlignment(Qt::AlignCenter);
         knobs[name] = knob;

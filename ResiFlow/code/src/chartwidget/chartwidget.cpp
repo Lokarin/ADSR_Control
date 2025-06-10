@@ -3,7 +3,7 @@
 ChartWidget::ChartWidget(QWidget *parent)
     : QChartView(parent),
     _amplitudeMax(5), _maxTime(0.33), _resolucao(25),
-    _attackRes(10000), _holdRes(10000), _decayReleaseRes(10000), _sustainRes(10000)
+    _attackRes(1), _holdRes(1), _decayReleaseRes(1), _sustainRes(1)
 {
     initializeChart();
     initializeAxes();
