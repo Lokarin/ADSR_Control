@@ -59,38 +59,6 @@ erDiagram
     SOM ||--|| VCA : "É Processado por"
 ```
 
----
-
-Se quiser algum outro formato de diagrama ou detalhamento, é só avisar!O domínio do problema do ResiFlow envolve a interação entre um usuário e um sistema de controle de envelopes AHDSR, onde o usuário, por meio de um aplicativo, pode ajustar os parâmetros do AHDSR, a frequência do trigger e também a frequência de um sinal de som que é enviado a um VCA. O VCA tem seu volume controlado pela saída de envelope do AHDSR.
-
-### Principais entidades:
-- **Usuário:** Pessoa que utiliza o app para configurar o sistema.
-- **App ResiFlow:** Interface digital para controle do AHDSR.
-- **AHDSR Potentia:** Módulo de envelope com parâmetros configuráveis via app, que tem seu trigger configurável, e uma saída de som.
-- **Parâmetro do AHDSR:** Attack, Hold, Decay, Sustain, Release, frequência do trigger, frequência do sinal de som.
-- **Trigger:** Sinal periódico que dispara o envelope.
-- **Sinal de Som:** Onda cuja frequência pode ser ajustada.
-- **VCA:** Amplificador controlado por tensão, recebe o sinal de som e tem o volume modulado pelo AHDSR.
-
-### Relações:
-- O **Usuário** utiliza o **App ResiFlow** para ajustar os **Parâmetros do AHDSR**.
-- O **App ResiFlow** envia comandos ao **AHDSR**.
-- O **AHDSR** controla o envelope de volume do **VCA**.
-- O **Trigger** e o **Sinal de Som** têm suas frequências ajustadas pelo usuário via app.
-- O **VCA** recebe o **Sinal de Som** e seu volume é controlado pelo envelope do **AHDSR**.
-
-### Diagrama (mermaid):
-```mermaid
-erDiagram
-    USUARIO ||--o{ APP_RESIFLOW : "utiliza"
-    APP_RESIFLOW ||--o{ PARAMETRO_AHDSR : "ajusta"
-    PARAMETRO_AHDSR }o--|| AHDSR : "configura"
-    AHDSR ||--o{ TRIGGER : "gera"
-    AHDSR ||--o{ SINAL_SOM : "modula"
-    AHDSR ||--o{ VCA : "controla volume"
-    SINAL_SOM ||--|| VCA : "é processado por"
-```
-
 <div align="center">
 
 [Retroceder](README.md) | [Avançar](projeto.md)
