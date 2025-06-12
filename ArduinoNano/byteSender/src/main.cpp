@@ -16,17 +16,18 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-    if (argc != 7) {
-       cerr << "OTARIO, É ASSIM: " << argv[0] << " atkSteps holdSteps susSteps decRelSteps triggerBPM vcaInputFreq\n";
+    if (argc != 8) {
+       cerr << "OTARIO, É ASSIM: " << argv[0] << "triggerCmd atkSteps holdSteps susSteps decRelSteps triggerBPM vcaInputFreq\n";
        return 1;
     }
 
-    int atkSteps           = atoi(argv[1]);
-    int holdSteps          = atoi(argv[2]);
-    int susSteps           = atoi(argv[3]);
-    int decRelSteps        = atoi(argv[4]);
-    int triggerBpm         = atoi(argv[5]);
-    int vcaInputFrequency  = atoi(argv[6]);
+    int triggerCmd         = atoi(argv[1]); 
+    int atkSteps           = atoi(argv[2]);
+    int holdSteps          = atoi(argv[3]);
+    int susSteps           = atoi(argv[4]);
+    int decRelSteps        = atoi(argv[5]);
+    int triggerBpm         = atoi(argv[6]);
+    int vcaInputFrequency  = atoi(argv[7]);
 
     const int F_CPU = 16000000;
     const int ocr1aPreScaler = 256;
@@ -98,6 +99,22 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 #endif
+        
+        switch (triggerCmd) {
+            case 00:
+                triggerCmd = 0xA0;
+            break;
+            case 01:
+                triggerCmd = 0xA1;
+            break;
+            case 10:
+                triggerCmd = 0xB0;
+            break;
+            case 11:
+                triggerCmd = 0xB1;
+            break;
+        }
+
         float triggerOscFreq;
         switch (triggerBpm) {
         case 60:
@@ -125,6 +142,7 @@ int main(int argc, char *argv[]) {
         int ocr1aValue = static_cast<int>(round((F_CPU / (2.0 * ocr1aPreScaler * triggerOscFreq)) - 1));
         int ocr2aValue = static_cast<int>(round((F_CPU / (2.0 * ocr2aPreScaler * vcaInputFrequency)) - 1));
 
+        byte trigCmd     = (triggerCmd);
         byte Atk         = (atkSteps);
         byte Hold        = (holdSteps);
         byte Sustain     = (susSteps);
@@ -133,7 +151,7 @@ int main(int argc, char *argv[]) {
         byte TriggerHigh = (ocr1aValue >> 8) & 0xFF;
         byte TriggerLow  = (ocr1aValue & 0xFF);        
         byte VcaInput    = (ocr2aValue); 
-        byte passos[7]   = {Atk, Hold, Sustain, DecRel, TriggerHigh, TriggerLow, VcaInput};
+        byte passos[8]   = {trigCmd, Atk, Hold, Sustain, DecRel, TriggerHigh, TriggerLow, VcaInput};
 
 #ifdef _WIN32
         DWORD bytesWritten;
@@ -141,7 +159,8 @@ int main(int argc, char *argv[]) {
             cerr << "Erro ao enviar dados." << endl;
         } else {
             cout << "Enviado: "
-                 << "ATK=0x" << hex << (int)Atk
+                 << "TRIGcmd=0x" << hex << (int)triggerCmd
+                 << ", ATK=0x" << (int)Atk
                  << ", HOLD=0x" << (int)Hold
                  << ", SUS=0x" << (int)Sustain
                  << ", DEC/REL=0x" << (int)DecRel
