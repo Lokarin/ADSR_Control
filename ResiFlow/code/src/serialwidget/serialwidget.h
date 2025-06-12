@@ -20,6 +20,7 @@ public:
     ~SerialWidget();
 
     void sendAHDSRData(
+                int triggerCmd,
             int atk,
             int hold,
             int sus,

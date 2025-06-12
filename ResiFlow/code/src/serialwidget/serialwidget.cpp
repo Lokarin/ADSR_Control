@@ -105,18 +105,34 @@ void SerialWidget::connectSerial() {
     }
 }
 
-void SerialWidget::sendAHDSRData(int atk, int hold, int sus, int rel, int bpm, int freq) {
+void SerialWidget::sendAHDSRData(int triggerCmd, int atk, int hold, int sus, int rel, int bpm, int freq) {
     if (!serial->isOpen()) {
         emit statusMessage("Erro: Porta serial não está conectada");
         return;
     }
 
+    qDebug() << "TRIGON: " << triggerCmd << "\n";
     //qDebug() << "Atk: " << atk << "\n";
     //qDebug() << "Hold: " << hold << "\n";
     //qDebug() << "Sust: " << sus << "\n";
     //qDebug() << "Rele: " << rel << "\n";
     //qDebug() << "BPM: " << bpm << "\n";
     //qDebug() << "Freq: " << freq << "\n";
+
+    switch (triggerCmd) {
+        case 00:
+            triggerCmd = 0xA0;
+            break;
+        case 01:
+            triggerCmd = 0xA1;
+            break;
+        case 10:
+            triggerCmd = 0xB0;
+            break;
+        case 11:
+            triggerCmd = 0xB1;
+            break;
+    }
 
     // bpm -> Hz
     float triggerOsqFreq;
@@ -151,6 +167,7 @@ void SerialWidget::sendAHDSRData(int atk, int hold, int sus, int rel, int bpm, i
 
     // adicionando os valores em forma de bits
     QByteArray data;
+    data.append(static_cast<char>(triggerCmd));
     data.append(static_cast<char>(atk));
     data.append(static_cast<char>(hold));
     data.append(static_cast<char>(sus));
@@ -170,15 +187,16 @@ void SerialWidget::sendAHDSRData(int atk, int hold, int sus, int rel, int bpm, i
     } else {
         emit statusMessage("Dados enviados com sucesso!");
 
-        //qDebug().noquote().nospace()
-        //<< "Enviado: "
-        //<< "ATK=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
-        //<< "HOLD=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0') << ", "
-        //<< "SUS=0x" << QString::number((quint8)data[2], 16).rightJustified(2, '0') << ", "
-        //<< "DEC/REL=0x" << QString::number((quint8)data[3], 16).rightJustified(2, '0') << ", "
-        //<< "TRIG=0x" << QString::number((quint8)data[4], 16).rightJustified(2, '0') << ", "
-        //<< "VCA=0x" << QString::number((quint8)data[6], 16).rightJustified(2, '0') << " ("
-        //<< data.size() << " bytes)";
+        qDebug().noquote().nospace()
+        << "Enviado: "
+        << "TRIGON=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
+        << "ATK=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0') << ", "
+        << "HOLD=0x" << QString::number((quint8)data[2], 16).rightJustified(2, '0') << ", "
+        << "SUS=0x" << QString::number((quint8)data[3], 16).rightJustified(2, '0') << ", "
+        << "DEC/REL=0x" << QString::number((quint8)data[4], 16).rightJustified(2, '0') << ", "
+        << "TRIG=0x" << QString::number((quint8)data[5], 16).rightJustified(2, '0') << ", "
+        << "VCA=0x" << QString::number((quint8)data[7], 16).rightJustified(2, '0') << " ("
+        << data.size() << " bytes)";
     }
 }
 

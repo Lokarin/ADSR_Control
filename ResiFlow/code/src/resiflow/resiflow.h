@@ -12,6 +12,7 @@
 #include <QGroupBox>
 #include <QShortcut>
 #include <QKeyCombination>
+#include <QCheckBox>
 
 #include "chartwidget/chartwidget.h"
 #include "customknob/customknob.h"
@@ -25,6 +26,7 @@ class ResiFlow : public QMainWindow
 public:
     ResiFlow(QWidget *parent = nullptr);
     ~ResiFlow();
+
 private:
     QMap<QString, CustomKnob*> knobs;
     ChartWidget * chart;
@@ -33,12 +35,18 @@ private:
     QLabel * freqLabel;
     QStringList freqLabels;
     SerialWidget * conexaoGroup;
+    QCheckBox * triggerModeSwitch;
+    QPushButton * triggerButton;
     QVector<int> getAHDSRValues();
+
     void updateChart();
     void sendSerialData();
     void getKnobValues();
+    void setAuto();
+
 signals:
     void parametersChanged(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
+
 private slots:
     void onParametersRequest();
     void onLoadParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);

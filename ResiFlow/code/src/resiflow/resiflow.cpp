@@ -105,6 +105,15 @@ ResiFlow::ResiFlow(QWidget *parent)
     freqPicker->addWidget(freqLabel, 0, Qt::AlignHCenter);
     freqPicker->addWidget(freqSlider, 0, Qt::AlignHCenter);
 
+    QHBoxLayout * triggerModeLayout = new QHBoxLayout;
+    triggerModeSwitch = new QCheckBox;
+    triggerModeSwitch->setCheckState(Qt::Checked);
+    triggerModeSwitch->setText("Automático");
+    triggerModeLayout->addWidget(triggerModeSwitch);
+
+    triggerButton = new QPushButton("Trigger");
+    triggerModeLayout->addWidget(triggerButton);
+
     // Adicionando as coisas aos layouts
     layoutMainEsquerda->addWidget(botaoSend);
     chartLayout->addLayout(freqPicker);
@@ -114,6 +123,7 @@ ResiFlow::ResiFlow(QWidget *parent)
 
     layoutMainDireita->addWidget(conexaoGroup);
     layoutMainDireita->addWidget(presetWidget);
+    layoutMainDireita->addLayout(triggerModeLayout);
     
     // Connects
     connect(botaoSend, &QPushButton::clicked, this, [=]() {
@@ -136,6 +146,18 @@ ResiFlow::ResiFlow(QWidget *parent)
     connect(shortcut, &QShortcut::activated, this, [=]() {
           chart->updatePontosReais(); 
           sendSerialData();
+    });
+
+    connect(triggerButton, &QPushButton::pressed, this, [=]() {
+          sendSerialData();
+    });
+    
+    connect(triggerButton, &QPushButton::released, this, [=]() {
+          sendSerialData();
+    });
+
+    connect(triggerModeSwitch, &QCheckBox::toggled, this, [=]() {
+          setAuto();
     });
 
     // Conects entre resiflow e presetWidget
@@ -173,14 +195,43 @@ void ResiFlow::updateChart(){
 
 void ResiFlow::sendSerialData(){
     QVector<int> data = getAHDSRValues();
+    int triggerCmd = 00;
+
+    if (triggerButton->isDown()) {
+        triggerCmd = 10;
+    } else {
+        triggerCmd = 11;
+    }
 
     conexaoGroup->sendAHDSRData(
+            triggerCmd,
             data[0], 
             data[1],
             data[2],
             data[3],
             data[4],
             data[5]);
+}
+
+void ResiFlow::setAuto() {
+    QVector<int> data = getAHDSRValues();
+    int triggerCmd = 00;
+
+    if (triggerModeSwitch->isChecked()) {
+        triggerCmd = 00;
+    } else {
+        triggerCmd = 01;
+    }
+
+    conexaoGroup->sendAHDSRData(
+            triggerCmd,
+            data[0], 
+            data[1],
+            data[2],
+            data[3],
+            data[4],
+            data[5]);
+
 }
 
 // Envia parâmetros para presetWidget
