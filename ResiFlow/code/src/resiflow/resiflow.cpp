@@ -12,9 +12,6 @@ ResiFlow::ResiFlow(QWidget *parent)
 }
 
 void ResiFlow::setupWidgets() {
-    // Criar um botao de envio de dados
-    botaoSend = new QPushButton("Enviar Curva Atual", this);
-    
     // Grupo de conexão
     conexaoGroup = new SerialWidget(this);
 
@@ -24,6 +21,7 @@ void ResiFlow::setupWidgets() {
     // Cria widget do grafico
     chart = new ChartWidget;
     chartGroup = new QGroupBox("", this);
+    chartGroup->setMinimumHeight(400);
     QHBoxLayout * chartLayout = new QHBoxLayout(chartGroup);
     chartLayout->addWidget(chart);
 
@@ -43,6 +41,11 @@ void ResiFlow::setupWidgets() {
     QFontMetrics fm(freqLabel->font());
     freqLabel->setMinimumWidth(fm.horizontalAdvance("BPM: 180"));
 
+    // Criar um botao de envio de dados
+    botaoSend = new QPushButton("⚙", this);
+    botaoSend->setFixedWidth(fm.horizontalAdvance("BPM: 180"));
+    botaoSend->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    
     // Controles do Trigger
     triggerModeSwitch = new QCheckBox("Automático", this);
     triggerModeSwitch->setCheckState(Qt::Checked);
@@ -66,16 +69,22 @@ void ResiFlow::setupLayout() {
     layoutEsquerda->setAlignment(Qt::AlignTop);
 
     // Freq picker (label + slider)
-    QVBoxLayout *freqPicker = new QVBoxLayout();
+    QVBoxLayout * freqPicker = new QVBoxLayout();
     freqPicker->addWidget(freqLabel, 0, Qt::AlignHCenter);
     freqPicker->addWidget(freqSlider, 0, Qt::AlignHCenter);
     // Adiciona freqPicker ao layout do gráfico
     static_cast<QHBoxLayout*>(chartGroup->layout())->addLayout(freqPicker);
 
-    // Adiciona widgets na esquerda
-    layoutEsquerda->addWidget(botaoSend);
+    // Layout knobs + freq
+    QHBoxLayout * layoutKnobsFreq = new QHBoxLayout();
+    layoutKnobsFreq->addWidget(knobsWidget);
+    layoutKnobsFreq->addWidget(botaoSend);
+
+    // Adiciona widgets à esquerda
+    //layoutEsquerda->addWidget(botaoSend);
     layoutEsquerda->addWidget(chartGroup);
-    layoutEsquerda->addWidget(knobsWidget);
+    //layoutEsquerda->addWidget(knobsWidget);
+    layoutEsquerda->addLayout(layoutKnobsFreq);
     esquerda->setLayout(layoutEsquerda);
 
     ///////////// Wid da direita

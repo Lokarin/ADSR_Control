@@ -7,6 +7,7 @@ KnobsWidget::KnobsWidget(QWidget *parent)
 }
 
 void KnobsWidget::init() {
+    this->setMinimumHeight(200);
     mainLayout = new QHBoxLayout(this);
     knobNames = {"Attack", "Hold", "Sustain", "Decay/Release"};
 
