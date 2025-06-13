@@ -120,7 +120,7 @@ void ResiFlow::setupConnects() {
     // de potenciometros, BPM e Freq
     connect(botaoSend, &QPushButton::clicked, this, [=]() {
           chart->updatePontosReais(); 
-          sendSerialData();
+          sendSerialData(1, 0);
     });
 
     // Slider de BPM atualizar label e chart simulado
@@ -142,18 +142,30 @@ void ResiFlow::setupConnects() {
     QShortcut * shortcut = new QShortcut(QKeySequence("Ctrl+Return"), this);
     connect(shortcut, &QShortcut::activated, this, [=]() {
           chart->updatePontosReais(); 
-          sendSerialData();
+          sendSerialData(1, 0);
     });
 
     // Ao clicar o botao de trigger, colocar trigger em alto
     // e ao soltar, colocar em baixo
-    connect(triggerButton, &QPushButton::pressed, this, &ResiFlow::sendSerialData);
-    connect(triggerButton, &QPushButton::released, this, &ResiFlow::sendSerialData);
+    connect(triggerButton, &QPushButton::pressed, this, [=]() {
+            if (!triggerModeSwitch->isChecked()) {
+                sendSerialData(0, 3);
+            }
+    });
+    connect(triggerButton, &QPushButton::released, this, [=]() {
+            if (!triggerModeSwitch->isChecked()) {
+            sendSerialData(0, 1);
+            }
+    });
 
     // Ao mudar o checkbox, enviar o status do modo do trigger
-    connect(triggerModeSwitch, &QCheckBox::toggled, this, [=]() {
-          setAuto();
-    });
+    connect(triggerModeSwitch, &QCheckBox::toggled, this, [=](bool checked) {
+    if (checked) {
+        sendSerialData(0, 0);
+    } else {
+        sendSerialData(0, 1);
+    }
+});
 
     // Conects entre resiflow e presetWidget
     connect(this, &ResiFlow::parametersChanged, presetWidget, &PresetWidget::receiveParameters);
@@ -193,38 +205,11 @@ void ResiFlow::updateChart(){
     );
 }
 
-void ResiFlow::sendSerialData(){
+void ResiFlow::sendSerialData(int rxHandler, int triggerCmd){
     AHDSRValues data = getAHDSRValues();
-    int triggerCmd = 00;
-
-    if (triggerButton->isDown()) {
-        triggerCmd = 10;
-    } else {
-        triggerCmd = 11;
-    }
 
     conexaoGroup->sendAHDSRData(
-            triggerCmd,
-            data.attack,
-            data.hold,
-            data.sustain,
-            data.decayRelease,
-            data.bpm,
-            data.freq
-    );
-}
-
-void ResiFlow::setAuto() {
-    AHDSRValues data = getAHDSRValues();
-    int triggerCmd = 00;
-
-    if (triggerModeSwitch->isChecked()) {
-        triggerCmd = 00;
-    } else {
-        triggerCmd = 01;
-    }
-
-    conexaoGroup->sendAHDSRData(
+            rxHandler,
             triggerCmd,
             data.attack,
             data.hold,

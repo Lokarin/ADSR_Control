@@ -105,81 +105,74 @@ void SerialWidget::connectSerial() {
     }
 }
 
-void SerialWidget::sendAHDSRData(int triggerCmd, int atk, int hold, int sus, int rel, int bpm, int freq) {
+void SerialWidget::sendAHDSRData(int rxHandler, int triggerCmd, int atk, int hold, int sus, int rel, int bpm, int freq) {
     if (!serial->isOpen()) {
         emit statusMessage("Erro: Porta serial não está conectada");
         return;
     }
 
-    qDebug() << "TRIGON: " << triggerCmd << "\n";
-    //qDebug() << "Atk: " << atk << "\n";
-    //qDebug() << "Hold: " << hold << "\n";
-    //qDebug() << "Sust: " << sus << "\n";
-    //qDebug() << "Rele: " << rel << "\n";
-    //qDebug() << "BPM: " << bpm << "\n";
-    //qDebug() << "Freq: " << freq << "\n";
+    qDebug() << "RX: " << rxHandler;
+    qDebug() << "TRIGON: " << triggerCmd;
+    qDebug() << "Atk: " << atk;
+    qDebug() << "Hold: " << hold;
+    qDebug() << "Sust: " << sus;
+    qDebug() << "Rele: " << rel;
+    qDebug() << "BPM: " << bpm;
+    qDebug() << "Freq: " << freq;
 
-    switch (triggerCmd) {
-        case 00:
-            triggerCmd = 0xA0;
-            break;
-        case 01:
-            triggerCmd = 0xA1;
-            break;
-        case 10:
-            triggerCmd = 0xB0;
-            break;
-        case 11:
-            triggerCmd = 0xB1;
-            break;
-    }
-
-    // bpm -> Hz
-    float triggerOsqFreq;
-    switch (bpm) {
-        case 60:
-            triggerOsqFreq = 1;
-            break;
-        case 100:
-            triggerOsqFreq = 1.6;
-            break;
-        case 120:
-            triggerOsqFreq = 2;
-            break;
-        case 150:
-            triggerOsqFreq = 2.5;
-            break;
-        case 180:
-            triggerOsqFreq = 3;
-            break;
-        default:
-            triggerOsqFreq = 1;
-            break;
-    }
-
-    constexpr double F_CPU = 16000000.0;        
-    constexpr int ocr1aPreScaler = 256;
-    constexpr int ocr2aPreScaler = 256;
-
-    // calculando o valor dee ocr1 e 2
-    int ocr1aValue = static_cast<int>(round((F_CPU / (2.0 * ocr1aPreScaler * triggerOsqFreq)) - 1));
-    int ocr2aValue = static_cast<int>(round((F_CPU / (2.0 * ocr2aPreScaler * freq)) - 1));
-
-    // adicionando os valores em forma de bits
     QByteArray data;
-    data.append(static_cast<char>(triggerCmd));
-    data.append(static_cast<char>(atk));
-    data.append(static_cast<char>(hold));
-    data.append(static_cast<char>(sus));
-    data.append(static_cast<char>(rel));
+    qint64 bytesEscritos;
+    if (rxHandler == 0) {
+        data.append(static_cast<char>(rxHandler));
+        data.append(static_cast<char>(triggerCmd));
+        bytesEscritos = serial->write(data);
+    } else {
+        // bpm -> Hz
+        float triggerOsqFreq;
+        switch (bpm) {
+            case 60:
+                triggerOsqFreq = 1;
+                break;
+            case 100:
+                triggerOsqFreq = 1.6;
+                break;
+            case 120:
+                triggerOsqFreq = 2;
+                break;
+            case 150:
+                triggerOsqFreq = 2.5;
+                break;
+            case 180:
+                triggerOsqFreq = 3;
+                break;
+            default:
+                triggerOsqFreq = 1;
+                break;
+        }
 
-    data.append(static_cast<char>((ocr1aValue >> 8) & 0xFF));
-    data.append(static_cast<char>(ocr1aValue & 0xFF));
+        constexpr double F_CPU = 16000000.0;        
+        constexpr int ocr1aPreScaler = 256;
+        constexpr int ocr2aPreScaler = 256;
 
-    data.append(static_cast<char>(ocr2aValue));
+        // calculando o valor dee ocr1 e 2
+        int ocr1aValue = static_cast<int>(round((F_CPU / (2.0 * ocr1aPreScaler * triggerOsqFreq)) - 1));
+        int ocr2aValue = static_cast<int>(round((F_CPU / (2.0 * ocr2aPreScaler * freq)) - 1));
 
-    // enviando os valores
-    qint64 bytesEscritos = serial->write(data);
+        // adicionando os valores em forma de bits
+        data.append(static_cast<char>(rxHandler));
+        data.append(static_cast<char>(atk));
+        data.append(static_cast<char>(hold));
+        data.append(static_cast<char>(sus));
+        data.append(static_cast<char>(rel));
+
+        data.append(static_cast<char>((ocr1aValue >> 8) & 0xFF));
+        data.append(static_cast<char>(ocr1aValue & 0xFF));
+
+        data.append(static_cast<char>(ocr2aValue));
+
+        // enviando os valores
+        bytesEscritos = serial->write(data);
+    }
 
     // debug avisando se deu certo ou errado
     if (bytesEscritos == -1) {
@@ -187,16 +180,26 @@ void SerialWidget::sendAHDSRData(int triggerCmd, int atk, int hold, int sus, int
     } else {
         emit statusMessage("Dados enviados com sucesso!");
 
-        qDebug().noquote().nospace()
-        << "Enviado: "
-        << "TRIGON=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
-        << "ATK=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0') << ", "
-        << "HOLD=0x" << QString::number((quint8)data[2], 16).rightJustified(2, '0') << ", "
-        << "SUS=0x" << QString::number((quint8)data[3], 16).rightJustified(2, '0') << ", "
-        << "DEC/REL=0x" << QString::number((quint8)data[4], 16).rightJustified(2, '0') << ", "
-        << "TRIG=0x" << QString::number((quint8)data[5], 16).rightJustified(2, '0') << ", "
-        << "VCA=0x" << QString::number((quint8)data[7], 16).rightJustified(2, '0') << " ("
-        << data.size() << " bytes)";
+       if (rxHandler == 0) {
+            qDebug().noquote().nospace()
+                << "Enviado: "
+                << "RXHANDLER=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
+                << "TRIGON=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0')
+                << " (" << data.size() << " byte)";
+        } else {
+            qDebug().noquote().nospace()
+                << "Enviado: "
+                << "RXHANDLER=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
+                << "ATK=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0') << ", "
+                << "HOLD=0x" << QString::number((quint8)data[2], 16).rightJustified(2, '0') << ", "
+                << "SUS=0x" << QString::number((quint8)data[3], 16).rightJustified(2, '0') << ", "
+                << "DEC/REL=0x" << QString::number((quint8)data[4], 16).rightJustified(2, '0') << ", "
+                << "TRIG=0x" << QString::number((quint8)data[5], 16).rightJustified(2, '0') << ", "
+                << "TRIG_LSB=0x" << QString::number((quint8)data[6], 16).rightJustified(2, '0') << ", "
+                << "VCA=0x" << QString::number((quint8)data[6], 16).rightJustified(2, '0') << " ("
+                << data.size() << " bytes)";
+}
+
     }
 }
 

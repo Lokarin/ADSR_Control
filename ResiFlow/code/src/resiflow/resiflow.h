@@ -74,9 +74,8 @@ private:
 
     AHDSRValues getAHDSRValues();
     void updateChart();
-    void sendSerialData();
+    void sendSerialData(int rxHandler, int triggerCmd);
     void getKnobValues();
-    void setAuto();
 
 signals:
     void parametersChanged(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
