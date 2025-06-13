@@ -18,6 +18,16 @@
 #include "customknob/customknob.h"
 #include "serialwidget/serialwidget.h"
 #include "presetwidget/presetwidget.h"
+#include "knobswidget/knobswidget.h"
+
+struct AHDSRValues {
+    int attack;
+    int hold;
+    int sustain;
+    int decayRelease;
+    int bpm;
+    int freq;
+};
 
 class ResiFlow : public QMainWindow
 {
@@ -28,17 +38,41 @@ public:
     ~ResiFlow();
 
 private:
-    QMap<QString, CustomKnob*> knobs;
-    ChartWidget * chart;
+    // Objeto Status Bar
     QStatusBar * status;
+
+    // botao para send
+    QPushButton * botaoSend;
+
+    // serialwidget
+    SerialWidget * conexaoGroup;
+
+    // presetwidget
+    PresetWidget * presetWidget;
+
+    // grafico
+    ChartWidget * chart;
+    QGroupBox * chartGroup;
+
+    // vetor com os knobs
+    KnobsWidget * knobsWidget;
+
+    // slider para frequencia
     QSlider * freqSlider;
     QLabel * freqLabel;
     QStringList freqLabels;
-    SerialWidget * conexaoGroup;
+
+    // controle de modos
     QCheckBox * triggerModeSwitch;
     QPushButton * triggerButton;
-    QVector<int> getAHDSRValues();
 
+
+    void setupWidgets();
+    void setupLayout();
+    void setupStatusBar();
+    void setupConnects();
+
+    AHDSRValues getAHDSRValues();
     void updateChart();
     void sendSerialData();
     void getKnobValues();

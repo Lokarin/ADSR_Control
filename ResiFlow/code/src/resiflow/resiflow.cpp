@@ -5,141 +5,129 @@ QT_USE_NAMESPACE
 ResiFlow::ResiFlow(QWidget *parent)
     : QMainWindow(parent)
 {
-    // Wid central
-    QWidget * central = new QWidget(this);
-    setCentralWidget(central);
-    central->setMinimumHeight(700);
+    setupWidgets();
+    setupLayout();
+    setupStatusBar();
+    setupConnects();
+}
 
-    status = new QStatusBar(this);
-    this->setStatusBar(status);
-    status->showMessage("Aguardando conexão...");
-
-    // Layout Principal Horizontal
-    QHBoxLayout * layoutMain = new QHBoxLayout(central);
-
-    // Wid da esquerda
-    QWidget * esquerda = new QWidget(central);
-    esquerda->setMinimumWidth(800);
-    layoutMain->addWidget(esquerda);
-
-    // Wid da direita
-    QWidget * direita = new QWidget(central);
-    direita->setMinimumWidth(600);
-    layoutMain->addWidget(direita);
-
-    // Layout Vertical no Wid da esquerda
-    QVBoxLayout * layoutMainEsquerda = new QVBoxLayout();
-    layoutMainEsquerda->setAlignment(Qt::AlignTop);
-    esquerda->setLayout(layoutMainEsquerda);
-
-    // Layout Vertical no Wid da direita
-    QVBoxLayout * layoutMainDireita = new QVBoxLayout();
-    layoutMainDireita->setAlignment(Qt::AlignTop);
-    direita->setLayout(layoutMainDireita);
-
+void ResiFlow::setupWidgets() {
     // Criar um botao de envio de dados
-    QPushButton * botaoSend = new QPushButton("Enviar Curva Atual");
-
+    botaoSend = new QPushButton("Enviar Curva Atual", this);
+    
     // Grupo de conexão
-    conexaoGroup = new SerialWidget;
+    conexaoGroup = new SerialWidget(this);
 
     // PresetWidget
-    PresetWidget * presetWidget = new PresetWidget;
+    presetWidget = new PresetWidget(this);
 
     // Cria widget do grafico
-    QGroupBox * chartGroup = new QGroupBox();
-    QHBoxLayout * chartLayout = new QHBoxLayout();
-    chartGroup->setLayout(chartLayout);
     chart = new ChartWidget;
+    chartGroup = new QGroupBox("", this);
+    QHBoxLayout * chartLayout = new QHBoxLayout(chartGroup);
     chartLayout->addWidget(chart);
 
     // Criar tray de quatro knobs
-    QGroupBox * trayGroup = new QGroupBox(esquerda);
-    trayGroup->setMaximumHeight(300);
-    QHBoxLayout * knobTray = new QHBoxLayout(trayGroup);
-
-    QStringList knobNames = {"Attack", "Hold", "Decay/Release", "Sustain"};
-    for (const QString &name : knobNames) {
-        // Layout vertical para cada set de knobs+txt
-        QWidget * knobTextContainer = new QWidget();
-        QVBoxLayout * textKnobLayout = new QVBoxLayout(knobTextContainer);
-
-        // Cria um knob
-        CustomKnob * knob = new CustomKnob();
-        //knob->setFixedSize(200,200);
-        //knobTray->addWidget(knob);
-        knob->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        knob->setValue(0);
-
-        // Cria o texto do knob
-        QString textLabel = name+": "+QString::number(knob->value());
-        QLabel * label = new QLabel(textLabel);
-        label->setAlignment(Qt::AlignCenter);
-        knobs[name] = knob;
-
-        connect(knob, &QDial::valueChanged, this, [=](int value){
-            label->setText(QString("%1: %2").arg(name).arg(value));
-            updateChart();
-        });
-        
-        textKnobLayout->addWidget(knob);
-        textKnobLayout->addWidget(label);
-
-        knobTray->addWidget(knobTextContainer);
-    }
+    knobsWidget = new KnobsWidget(this);
 
     // Slider para frequencia
-    QVBoxLayout * freqPicker = new QVBoxLayout();
     freqLabels = {"60", "100", "120", "150", "180"};
-    freqSlider = new QSlider(Qt::Vertical);
+    freqSlider = new QSlider(Qt::Vertical, this);
     freqSlider->setMinimum(0);
     freqSlider->setMaximum(freqLabels.size() - 1);
     freqSlider->setTickInterval(1);
     freqSlider->setTickPosition(QSlider::TicksBothSides);
     freqSlider->setSliderPosition(4);
-    freqLabel = new QLabel(QString("BPM: 180"));
-    QFontMetrics fm(freqLabel->font());
-    int freqLabelW = fm.horizontalAdvance("BPM: 180");  // largura do maior valor
-    freqLabel->setMinimumWidth(freqLabelW);
 
+    freqLabel = new QLabel("BPM: 180", this);
+    QFontMetrics fm(freqLabel->font());
+    freqLabel->setMinimumWidth(fm.horizontalAdvance("BPM: 180"));
+
+    // Controles do Trigger
+    triggerModeSwitch = new QCheckBox("Automático", this);
+    triggerModeSwitch->setCheckState(Qt::Checked);
+
+    triggerButton = new QPushButton("Trigger", this);
+}
+
+void ResiFlow::setupLayout() {
+    // Wid central
+    QWidget * central = new QWidget(this);
+    setCentralWidget(central);
+    central->setMinimumHeight(700);
+
+    // Layout Principal Horizontal
+    QHBoxLayout * layoutMain = new QHBoxLayout(central);
+
+    ///////////// Wid da esquerda
+    QWidget * esquerda = new QWidget(central);
+    esquerda->setMinimumWidth(800);
+    QVBoxLayout * layoutEsquerda = new QVBoxLayout(esquerda);
+    layoutEsquerda->setAlignment(Qt::AlignTop);
+
+    // Freq picker (label + slider)
+    QVBoxLayout *freqPicker = new QVBoxLayout();
     freqPicker->addWidget(freqLabel, 0, Qt::AlignHCenter);
     freqPicker->addWidget(freqSlider, 0, Qt::AlignHCenter);
+    // Adiciona freqPicker ao layout do gráfico
+    static_cast<QHBoxLayout*>(chartGroup->layout())->addLayout(freqPicker);
 
-    QHBoxLayout * triggerModeLayout = new QHBoxLayout;
-    triggerModeSwitch = new QCheckBox;
-    triggerModeSwitch->setCheckState(Qt::Checked);
-    triggerModeSwitch->setText("Automático");
+    // Adiciona widgets na esquerda
+    layoutEsquerda->addWidget(botaoSend);
+    layoutEsquerda->addWidget(chartGroup);
+    layoutEsquerda->addWidget(knobsWidget);
+    esquerda->setLayout(layoutEsquerda);
+
+    ///////////// Wid da direita
+    QWidget * direita = new QWidget(central);
+    direita->setMinimumWidth(600);
+    QVBoxLayout * layoutDireita = new QVBoxLayout(direita);
+    layoutDireita->setAlignment(Qt::AlignTop);
+
+    // Layout trigger (check e botão)
+    QHBoxLayout *triggerModeLayout = new QHBoxLayout();
     triggerModeLayout->addWidget(triggerModeSwitch);
-
-    triggerButton = new QPushButton("Trigger");
     triggerModeLayout->addWidget(triggerButton);
 
-    // Adicionando as coisas aos layouts
-    layoutMainEsquerda->addWidget(botaoSend);
-    chartLayout->addLayout(freqPicker);
-    //layoutMainEsquerda->addLayout(chartLayout);
-    layoutMainEsquerda->addWidget(chartGroup);
-    layoutMainEsquerda->addWidget(trayGroup);
+    // Adiciona widgets à direita
+    layoutDireita->addWidget(conexaoGroup);
+    layoutDireita->addWidget(presetWidget);
+    layoutDireita->addLayout(triggerModeLayout);
+    direita->setLayout(layoutDireita);
 
-    layoutMainDireita->addWidget(conexaoGroup);
-    layoutMainDireita->addWidget(presetWidget);
-    layoutMainDireita->addLayout(triggerModeLayout);
-    
-    // Connects
+    // Adiciona os dois lados ao layout principal
+    layoutMain->addWidget(esquerda);
+    layoutMain->addWidget(direita);
+}
+
+void ResiFlow::setupStatusBar() {
+    status = new QStatusBar(this);
+    setStatusBar(status);
+    status->showMessage("Aguardando conexão...");
+}
+
+void ResiFlow::setupConnects() {
+    // Botao send atualiza os pontos reais e envia os valores
+    // de potenciometros, BPM e Freq
     connect(botaoSend, &QPushButton::clicked, this, [=]() {
           chart->updatePontosReais(); 
           sendSerialData();
     });
 
+    // Slider de BPM atualizar label e chart simulado
     connect(freqSlider, &QSlider::valueChanged, this, [=]() {
            int freqIndex = freqSlider->value();
            freqLabel->setText(QString("BPM: %1").arg(freqLabels[freqIndex]));
            updateChart();
     });
 
+    // Connect para statusbar mostrar mensagens
     connect(conexaoGroup, &SerialWidget::statusMessage, this, [this](const QString &msg){
         status->showMessage(msg);
     });
+
+    // Sempre que os knobs se alteram, atualiza chart simulado
+    connect(knobsWidget, &KnobsWidget::knobsChanged, this, &ResiFlow::updateChart);
 
     // Teste de shortcut
     QShortcut * shortcut = new QShortcut(QKeySequence("Ctrl+Return"), this);
@@ -148,14 +136,12 @@ ResiFlow::ResiFlow(QWidget *parent)
           sendSerialData();
     });
 
-    connect(triggerButton, &QPushButton::pressed, this, [=]() {
-          sendSerialData();
-    });
-    
-    connect(triggerButton, &QPushButton::released, this, [=]() {
-          sendSerialData();
-    });
+    // Ao clicar o botao de trigger, colocar trigger em alto
+    // e ao soltar, colocar em baixo
+    connect(triggerButton, &QPushButton::pressed, this, &ResiFlow::sendSerialData);
+    connect(triggerButton, &QPushButton::released, this, &ResiFlow::sendSerialData);
 
+    // Ao mudar o checkbox, enviar o status do modo do trigger
     connect(triggerModeSwitch, &QCheckBox::toggled, this, [=]() {
           setAuto();
     });
@@ -164,37 +150,42 @@ ResiFlow::ResiFlow(QWidget *parent)
     connect(this, &ResiFlow::parametersChanged, presetWidget, &PresetWidget::receiveParameters);
     connect(presetWidget, &PresetWidget::parametersRequest, this, &ResiFlow::onParametersRequest);
     connect(presetWidget, &PresetWidget::loadParametersToInterface, this, &ResiFlow::onLoadParameters);
-
 }
 
-QVector<int> ResiFlow::getAHDSRValues(){
-            int A = knobs["Attack"]->value();
-            int H = knobs["Hold"]->value();
-            int S = knobs["Sustain"]->value();
-            int DR = knobs["Decay/Release"]->value();
 
-            int bpmIndex = freqSlider->value();
-            int bpmVal = freqLabels[bpmIndex].toInt();
+AHDSRValues ResiFlow::getAHDSRValues(){
+    QVector<int> knobValues = knobsWidget->getKnobValues();
+    
+    int bpmIndex = freqSlider->value();
+    int bpmVal = freqLabels[bpmIndex].toInt();
+    
+    int freq = 500;
 
-            int freq = 500;
-
-            return {A, H, S, DR, bpmVal, freq};
+    return {
+        knobValues[0],  
+        knobValues[1],  
+        knobValues[2],  
+        knobValues[3],  
+        bpmVal,
+        freq
+    };
 }
 
 void ResiFlow::updateChart(){
-    QVector<int> data = getAHDSRValues();
+    AHDSRValues data = getAHDSRValues();
 
     chart->updateChartSim(
-            (data[0]*100)+1,
-            (data[1]*100)+1, 
-            (data[2]*100)+1, 
-            (data[3]*100)+1, 
-            data[4], 
-            5);
+            (data.attack * 100) +1,
+            (data.hold * 100) +1,
+            (data.sustain * 100) +1,
+            (data.decayRelease * 100) +1,
+            data.bpm,
+            5
+    );
 }
 
 void ResiFlow::sendSerialData(){
-    QVector<int> data = getAHDSRValues();
+    AHDSRValues data = getAHDSRValues();
     int triggerCmd = 00;
 
     if (triggerButton->isDown()) {
@@ -205,16 +196,17 @@ void ResiFlow::sendSerialData(){
 
     conexaoGroup->sendAHDSRData(
             triggerCmd,
-            data[0], 
-            data[1],
-            data[2],
-            data[3],
-            data[4],
-            data[5]);
+            data.attack,
+            data.hold,
+            data.sustain,
+            data.decayRelease,
+            data.bpm,
+            data.freq
+    );
 }
 
 void ResiFlow::setAuto() {
-    QVector<int> data = getAHDSRValues();
+    AHDSRValues data = getAHDSRValues();
     int triggerCmd = 00;
 
     if (triggerModeSwitch->isChecked()) {
@@ -225,28 +217,32 @@ void ResiFlow::setAuto() {
 
     conexaoGroup->sendAHDSRData(
             triggerCmd,
-            data[0], 
-            data[1],
-            data[2],
-            data[3],
-            data[4],
-            data[5]);
-
+            data.attack,
+            data.hold,
+            data.sustain,
+            data.decayRelease,
+            data.bpm,
+            data.freq
+    );
 }
 
 // Envia parâmetros para presetWidget
 void ResiFlow::onParametersRequest() {
-    QVector<int> tempData = getAHDSRValues();
-    emit parametersChanged(tempData[0], tempData[1], tempData[2], tempData[3], tempData[4], tempData[5]);
+    AHDSRValues data = getAHDSRValues();
+
+    emit parametersChanged(
+            data.attack,
+            data.hold,
+            data.sustain,
+            data.decayRelease,
+            data.bpm,
+            data.freq
+    );
 }
 
 void ResiFlow::onLoadParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq) {
     // Atualiza valores dos knobs com o valor do preset selecionado
-
-    knobs["Attack"]->setValue(attack);
-    knobs["Hold"]->setValue(hold);
-    knobs["Sustain"]->setValue(sustain);
-    knobs["Decay/Release"]->setValue(decayRelease);
+    knobsWidget->setKnobValues({attack, hold, sustain, decayRelease});
 
     // Atualiza slider BPM com o valor do preset selecionado
     int freqIndex = 0;
@@ -259,7 +255,7 @@ void ResiFlow::onLoadParameters(int attack, int hold, int sustain, int decayRele
     freqSlider->setValue(freqIndex);
     freqLabel->setText(QString("BPM: %1").arg(bpmVal));
 
-    // Atualiza gráfico com o preset selecionado
+    // Atualiza gráfico simulado com o preset selecionado
     updateChart();
 }
 
