@@ -16,6 +16,7 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
+<<<<<<< Updated upstream
     if (argc != 8) {
        cerr << "OTARIO, É ASSIM: " << argv[0] << "triggerCmd atkSteps holdSteps susSteps decRelSteps triggerBPM vcaInputFreq\n";
        return 1;
@@ -29,9 +30,15 @@ int main(int argc, char *argv[]) {
     int triggerBpm         = atoi(argv[6]);
     int vcaInputFrequency  = atoi(argv[7]);
 
+=======
+>>>>>>> Stashed changes
     const int F_CPU = 16000000;
     const int ocr1aPreScaler = 256;
     const int ocr2aPreScaler = 256;
+    int rxHandlerSection;
+    int triggerMode;
+    int atkSteps, susSteps, holdSteps, decRelSteps, triggerBpm, vcaInputFrequency, ocr1aValue, ocr2aValue;
+    float triggerOscFreq;
 
 #ifdef _WIN32
     HANDLE hSerial = CreateFile("COM6", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
@@ -99,6 +106,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 #endif
+<<<<<<< Updated upstream
         
         switch (triggerCmd) {
             case 00:
@@ -136,12 +144,20 @@ int main(int argc, char *argv[]) {
             triggerOscFreq = 1;
             break;
         }
+=======
+    while(true) {
+        cout << "Rxbyte (0 -> Enviar trigger bytes; 1 -> Enviar AHDSR btyes): ";
+        cin >> rxHandlerSection;
+>>>>>>> Stashed changes
 
-        double temp;
-        temp = ( (double)(F_CPU) / (2 * ocr1aPreScaler * triggerOscFreq) ) - 1;
-        int ocr1aValue = static_cast<int>(round((F_CPU / (2.0 * ocr1aPreScaler * triggerOscFreq)) - 1));
-        int ocr2aValue = static_cast<int>(round((F_CPU / (2.0 * ocr2aPreScaler * vcaInputFrequency)) - 1));
+        if (rxHandlerSection == 0) {
+            cout << "Trigger Mode (0 - Auto; 1 - Manual e Desligado; 3 - Manual e Ligado): ";
+            cin >> triggerMode;
+            byte rxHandleSectionByte = 0;
+            byte trigMode = (triggerMode);
+            byte triggerBytes[2] = {rxHandleSectionByte, trigMode};
 
+<<<<<<< Updated upstream
         byte trigCmd     = (triggerCmd);
         byte Atk         = (atkSteps);
         byte Hold        = (holdSteps);
@@ -152,12 +168,32 @@ int main(int argc, char *argv[]) {
         byte TriggerLow  = (ocr1aValue & 0xFF);        
         byte VcaInput    = (ocr2aValue); 
         byte passos[8]   = {trigCmd, Atk, Hold, Sustain, DecRel, TriggerHigh, TriggerLow, VcaInput};
+=======
+            #ifdef _WIN32
+                DWORD bytesWritten;
+                if (!WriteFile(hSerial, triggerBytes, sizeof(triggerBytes), &bytesWritten, NULL)) {
+                    cerr << "Erro ao enviar dados." << endl;
+                } else {
+                    cout << "Enviado: "
+                        << "RxByte=0x" << hex << (int)rxHandleSectionByte
+                        << ", TrigMode=0x" << (int)triggerMode
+                        << " (" << dec << bytesWritten << " bytes)" << endl;
+                }
+            #else
+                ssize_t bytesWritten = write(serialPort, triggerBytes, sizeof(triggerBytes));
+                if (bytesWritten < 0) {
+                    cerr << "Erro ao enviar dados.\n";
+                } else {
+                    cout << "Enviado: "
+                        << "RxByte=0x" << hex << (int)rxHandleSectionByte
+                        << ", TrigMode=0x" << (int)triggerMode
+                        << " (" << dec << bytesWritten << " bytes)" << endl;
+                }
+            #endif
+>>>>>>> Stashed changes
 
-#ifdef _WIN32
-        DWORD bytesWritten;
-        if (!WriteFile(hSerial, passos, sizeof(passos), &bytesWritten, NULL)) {
-            cerr << "Erro ao enviar dados." << endl;
         } else {
+<<<<<<< Updated upstream
             cout << "Enviado: "
                  << "TRIGcmd=0x" << hex << (int)triggerCmd
                  << ", ATK=0x" << (int)Atk
@@ -167,24 +203,95 @@ int main(int argc, char *argv[]) {
                  << ", TRIG_FREQ=0x" << (int)Trigger
                  << ", VCA_FREQ=0x" << (int)VcaInput
                  << " (" << dec << bytesWritten << " bytes)" << endl;
+=======
+            cout << "Attack - (0-100): ";                       cin >> atkSteps;
+
+            cout << "Hold - (0-100): ";                         cin >> holdSteps;
+
+            cout << "Sustain - (0-100): ";                      cin >> susSteps;
+
+            cout << "Decay/Release - (0-100): ";                cin >> decRelSteps;
+
+            cout << "Trigger BPM (60, 100, 120, 150, 180): ";   cin >> triggerBpm;
+
+            cout << "VCA sign in frequency: ";                  cin >> vcaInputFrequency;    
+
+            switch (triggerBpm) {
+                case 60:
+                    triggerOscFreq = 1;
+                    break;
+                case 100:
+                    triggerOscFreq = 1.6;
+                    break;
+                case 120:
+                    triggerOscFreq = 2;
+                    break;
+                case 150:
+                    triggerOscFreq = 2.5;
+                    break;
+                case 180:
+                    triggerOscFreq = 3;
+                    break;
+                default:
+                    triggerOscFreq = 1;
+                    break;
+                }
+
+            double temp;
+            temp = ( (double)(F_CPU) / (2 * ocr1aPreScaler * triggerOscFreq) ) - 1;
+            int ocr1aValue = static_cast<int>(round((F_CPU / (2.0 * ocr1aPreScaler * triggerOscFreq)) - 1));
+            int ocr2aValue = static_cast<int>(round((F_CPU / (2.0 * ocr2aPreScaler * vcaInputFrequency)) - 1));
+            
+            byte rxHandleSectionByte = 1;
+            byte Atk                 = (atkSteps);
+            byte Hold                = (holdSteps);
+            byte Sustain             = (susSteps);
+            byte DecRel              = (decRelSteps);
+            byte Trigger             = (ocr1aValue);
+            byte TriggerHigh         = (ocr1aValue >> 8) & 0xFF;
+            byte TriggerLow          = (ocr1aValue & 0xFF);        
+            byte VcaInput            = (ocr2aValue); 
+            byte ahdsrBytes[8]       = {rxHandleSectionByte, Atk, Hold, Sustain, DecRel, TriggerHigh, TriggerLow, VcaInput};
+
+            #ifdef _WIN32
+                DWORD bytesWritten;
+                if (!WriteFile(hSerial, ahdsrBytes, sizeof(ahdsrBytes), &bytesWritten, NULL)) {
+                    cerr << "Erro ao enviar dados." << endl;
+                } else {
+                    cout << "Enviado: "
+                        << "RxByte=0x" << hex << (int)rxHandleSectionByte
+                        << ", ATK=0x" << (int)Atk
+                        << ", HOLD=0x" << (int)Hold
+                        << ", SUS=0x" << (int)Sustain
+                        << ", DEC/REL=0x" << (int)DecRel
+                        << ", TRIG_FREQ=0x" << (int)Trigger
+                        << ", VCA_FREQ=0x" << (int)VcaInput
+                        << " (" << dec << bytesWritten << " bytes)" << endl;
+                }
+            #else
+                ssize_t bytesWritten = write(serialPort, ahdsrBytes, sizeof(ahdsrBytes));
+                if (bytesWritten < 0) {
+                    cerr << "Erro ao enviar dados.\n";
+                } else {
+                    cout << "Enviado: "
+                        << "RxByte=0x" << hex << (int)rxHandleSectionByte
+                        << ", ATK=0x" << (int)Atk
+                        << ", HOLD=0x" << (int)Hold
+                        << ", SUS=0x" << (int)Sustain
+                        << ", DEC/REL=0x" << (int)DecRel
+                        << ", TRIG_FREQ=0x" << (int)Trigger
+                        << ", VCA_FREQ=0x" << (int)VcaInput
+                        << " (" << dec << bytesWritten << " bytes)" << endl;
+                }
+            #endif
+>>>>>>> Stashed changes
         }
-    CloseHandle(hSerial);
-#else
-        ssize_t bytesWritten = write(serialPort, passos, sizeof(passos));
-        if (bytesWritten < 0) {
-            cerr << "Erro ao enviar dados.\n";
-        } else {
-            cout << "Enviado: "
-                 << "ATK=0x" << hex << (int)Atk
-                 << ", HOLD=0x" << (int)Hold
-                 << ", SUS=0x" << (int)Sustain
-                 << ", DEC/REL=0x" << (int)DecRel
-                 << ", TRIG=0x" << (int)Trigger
-                 << ", VCA=0x" << (int)VcaInput
-                 << " (" << dec << bytesWritten << " bytes)" << endl;
-        }
-    close(serialPort);
-#endif
+    }
+    #ifdef _WIN32
+        CloseHandle(hSerial);
+    #else
+        close(serialPort);
+    #endif
 
     return 0;
 }
