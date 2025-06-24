@@ -45,6 +45,7 @@ void ResiFlow::setupWidgets() {
     botaoSend = new QPushButton("⚙", this);
     botaoSend->setFixedWidth(fm.horizontalAdvance("BPM: 180"));
     botaoSend->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    botaoSend->setMaximumHeight(300);
     
     // Controles do Trigger
     triggerModeSwitch = new QCheckBox("Automático", this);
