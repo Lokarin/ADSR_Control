@@ -61,7 +61,7 @@ void PresetWidget::updatePresetList(QString presetName) {
     }
 
     int QComboBoxIndex = presetSelector->findText(presetName);
-    qDebug() << QComboBoxIndex << "\n";
+    //qDebug() << QComboBoxIndex << "\n";
     if (QComboBoxIndex != -1) {
         presetSelector->setCurrentIndex(QComboBoxIndex);
     }
