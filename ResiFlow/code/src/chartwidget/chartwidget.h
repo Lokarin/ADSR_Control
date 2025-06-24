@@ -2,6 +2,7 @@
 #define CHARTWIDGET_H
 
 #include <QWidget>
+#include <QFile>
 #include <QtCharts/QChartView>
 #include <QtCharts/QChart>
 #include <QtCharts/QSplineSeries>
@@ -18,6 +19,10 @@ public:
     ~ChartWidget();
     void updateChartSim(int A, int H, int DR, int S, float freq, double maxVol);
     void updatePontosReais();
+
+    bool saveChartAsImage(const QString &filePath);
+    bool saveChartAsBinary(const QString &filePath);
+    bool saveChartAsCArray(const QString &filePath);
 
 private:
     double _maxTime, _holdTime, _amplitudeMax, _sustainVolt, _maxAttackVolt;
@@ -39,6 +44,12 @@ private:
     void sustainCalculation();
     void decayCalculation();
     void releaseCalculation();
+
+    QImage renderToMonochromeImage();
+    QVector<QPointF> getPontos() const;
+    void debugPontos();
+    void drawLine(int x0, int y0, int x1, int y1, std::function<void(int, int)> setPixel);
+    
 };
 
 #endif // CHARTWIDGET_H
