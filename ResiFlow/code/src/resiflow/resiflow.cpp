@@ -35,9 +35,9 @@ void ResiFlow::setupWidgets() {
     freqSlider->setMaximum(freqLabels.size() - 1);
     freqSlider->setTickInterval(1);
     freqSlider->setTickPosition(QSlider::TicksBothSides);
-    freqSlider->setSliderPosition(4);
+    freqSlider->setSliderPosition(2);
 
-    freqLabel = new QLabel("BPM: 180", this);
+    freqLabel = new QLabel("BPM: 120", this);
     QFontMetrics fm(freqLabel->font());
     freqLabel->setMinimumWidth(fm.horizontalAdvance("BPM: 180"));
 
@@ -196,10 +196,10 @@ void ResiFlow::updateChart(){
     AHDSRValues data = getAHDSRValues();
 
     chart->updateChartSim(
-            (data.attack * 100) +1,
-            (data.hold * 100) +1,
-            (data.sustain * 100) +1,
-            (data.decayRelease * 100) +1,
+            (data.attack * 375) + 375,
+            (data.hold * 277) + 277,
+            (data.sustain * 392) + 1,
+            (data.decayRelease * 375) + 375,
             data.bpm,
             5
     );

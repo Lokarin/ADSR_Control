@@ -17,6 +17,7 @@ void KnobsWidget::init() {
 
         knob->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         knob->setValue(0);
+        knob->setMaximum(255);
 
         QLabel * knobLabel = new QLabel(nome + ": " + QString::number(knob->value()));
         knobLabel->setAlignment(Qt::AlignCenter);
@@ -33,6 +34,7 @@ void KnobsWidget::init() {
 
         mainLayout->addLayout(knobAndTextLayout);
     }
+    knobs["Sustain"]->setValue(255);
 }
 
 QVector<int> KnobsWidget::getKnobValues() const {

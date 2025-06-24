@@ -2,8 +2,8 @@
 
 ChartWidget::ChartWidget(QWidget *parent)
     : QChartView(parent),
-    _amplitudeMax(5), _maxTime(0.33), _resolucao(25),
-    _attackRes(1), _holdRes(1), _decayReleaseRes(1), _sustainRes(1)
+    _amplitudeMax(5), _maxTime(0.5), _resolucao(25),
+    _attackRes(375), _holdRes(277), _decayReleaseRes(375), _sustainRes(100001)
 {
     initializeChart();
     initializeAxes();
@@ -11,7 +11,7 @@ ChartWidget::ChartWidget(QWidget *parent)
     setupChartStyling();
 
     // uptate no grafico, no caso só com a onda de preview
-    updateChartSim(_attackRes, _holdRes, _decayReleaseRes, _sustainRes, 180, _amplitudeMax);
+    updateChartSim(_attackRes, _holdRes, _sustainRes, _decayReleaseRes, 120, _amplitudeMax);
 }
 
 void ChartWidget::initializeChart() {
@@ -33,7 +33,7 @@ void ChartWidget::initializeAxes() {
     
     // Eixo X
     xAxis = new QValueAxis;
-    xAxis->setRange(0, 0.33); // Valor inicial
+    xAxis->setRange(0, _maxTime); // Valor inicial
     xAxis->setLinePen(QPen(Qt::white));
     xAxis->setLabelsColor(Qt::white);
     xAxis->setGridLinePen(QPen(Qt::gray));
@@ -142,7 +142,7 @@ void ChartWidget::attackCalculation() {
     // Primeira tentativa com tempo padrão
     for (int i = 0; i < _resolucao; ++i) {
         t = _holdTime * (static_cast<double>(i) / (_resolucao - 1));
-        v = _amplitudeMax * (1.0 - exp(-t / (_attackRes * 10e-6)));
+        v = _amplitudeMax * (1.0 - exp(-t / (_attackRes * 1e-6)));
 
         pontosPreview->append(t, v);
     }
@@ -157,7 +157,7 @@ void ChartWidget::attackCalculation() {
 
         while (vAttack < _sustainVolt && t < _maxTime / 2) {
             t += step;
-            vAttack = _amplitudeMax * (1.0 - exp(-t / (_attackRes * 10e-6)));
+            vAttack = _amplitudeMax * (1.0 - exp(-t / (_attackRes * 1e-6)));
             pontosPreview->append(t, vAttack);
         }
 
@@ -168,14 +168,14 @@ void ChartWidget::attackCalculation() {
 }
 
 void ChartWidget::sustainCalculation() {
-    // o potenciometro é de 10k, logo o outro lado do 
-    // potenciometro é 10k menos a resistencia de sustain
-    int sustainRComp = 10000-_sustainRes;
+    // o potenciometro é de 100k, logo o outro lado do 
+    // potenciometro é 100k menos a resistencia de sustain
+    int sustainRComp = 100000-_sustainRes;
     //qDebug() << "Sustain Complement: " << sustainRComp << "\n";
 
     // Rv = R1 / R1 + R2
-    double div = static_cast<double>(sustainRComp)/(sustainRComp + _sustainRes);
-    //qDebug() << "Divsor de tensao (Resistencia): " << div << "\n";
+    double div = static_cast<double>(_sustainRes)/(sustainRComp + _sustainRes);
+    //qDebug() << "Divisor de tensao (Resistencia): " << div << "\n";
 
     // Vsus = Vtotal * Rv
     _sustainVolt = _amplitudeMax * div;
@@ -199,7 +199,7 @@ void ChartWidget::decayCalculation() {
             return;
         } else {
             // Decaimento exponencial padrão
-            v = _sustainVolt + (_maxAttackVolt - _sustainVolt) * exp(-(t - _holdTime) / (_decayReleaseRes * 10e-6));
+            v = _sustainVolt + (_maxAttackVolt - _sustainVolt) * exp(-(t - _holdTime) / (_decayReleaseRes * 1e-6));
         }
 
         pontosPreview->append(t, v);
@@ -222,7 +222,7 @@ void ChartWidget::releaseCalculation() {
         // Que nem no decay, devemos subtrair de t um valor 
         // que quando i = 0, a fórmula entenda que estamos 
         // calculando a tensão para o momento 0.
-        double v = _minDecayVolt * exp( -(t - (_maxTime/2)) / (_decayReleaseRes * 10e-6) );
+        double v = _minDecayVolt * exp( -(t - (_maxTime/2)) / (_decayReleaseRes * 1e-6) );
 
         // Adiciona os pontos à série de preview
         pontosPreview->append(t,v);
