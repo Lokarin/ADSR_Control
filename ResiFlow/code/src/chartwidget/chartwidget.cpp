@@ -3,7 +3,7 @@
 ChartWidget::ChartWidget(QWidget *parent)
     : QChartView(parent),
     _amplitudeMax(5), _maxTime(0.33), _resolucao(25),
-    _attackRes(10000), _holdRes(10000), _decayReleaseRes(10000), _sustainRes(10000)
+    _attackRes(1), _holdRes(1), _decayReleaseRes(1), _sustainRes(1)
 {
     initializeChart();
     initializeAxes();
@@ -70,14 +70,14 @@ void ChartWidget::setupChartStyling() {
     setChart(chart);
 }
 
-void ChartWidget::updateChartSim(int A, int H, int DR, int S, float freq, double _amplitudeMax) {
+void ChartWidget::updateChartSim(int atk, int hold, int sus, int rel, float freq, double _amplitudeMax) {
     //qDebug() << "######################################" << "\n";
     //qDebug() << "Frequencia: " << freq << "\n";
 
-    _attackRes = A;
-    _holdRes = H;
-    _decayReleaseRes = DR;
-    _sustainRes = S;
+    _attackRes = atk;
+    _holdRes = hold;
+    _decayReleaseRes = rel;
+    _sustainRes = sus;
 
     //qDebug() << "Resistencia Attack: " << _attackRes << "\n";
     //qDebug() << "Resistencia Hold: " << _holdRes << "\n";
@@ -133,26 +133,21 @@ void ChartWidget::holdCalculation(){
 
 void ChartWidget::attackCalculation() {
     double v = 0.0;
+    pontosPreview->clear(); // remove se já estiver limpa antes
 
+    // Estimativa de tempo necessário até atingir sustain (caso necessário)
+    double tempoFinalAttack = _holdTime;
+    double t, step;
+
+    // Primeira tentativa com tempo padrão
     for (int i = 0; i < _resolucao; ++i) {
-<<<<<<< Updated upstream
-        // Calcula a fração do tempo atual
-        double t = _holdTime * (static_cast<double>(i) / (_resolucao - 1));
-=======
         t = _holdTime * (static_cast<double>(i) / (_resolucao - 1));
         v = _amplitudeMax * (1.0 - exp(-t / (_attackRes * 1e-6)));
->>>>>>> Stashed changes
 
-        // Fórmula do capacitor carregando
-        v = _amplitudeMax * (1.0 - exp(-t / (_attackRes * 1e-6)));
-
-        // Adiciona o ponto na série
         pontosPreview->append(t, v);
     }
 
     _maxAttackVolt = v;
-<<<<<<< Updated upstream
-=======
 
     // Se sustain > valor final do attack, significa que o attack deve continuar
     if (_sustainVolt > _maxAttackVolt) {
@@ -170,7 +165,6 @@ void ChartWidget::attackCalculation() {
         _holdTime = t; // nova duração real da fase de attack
         _minDecayVolt = vAttack;
     }
->>>>>>> Stashed changes
 }
 
 void ChartWidget::sustainCalculation() {
@@ -180,7 +174,7 @@ void ChartWidget::sustainCalculation() {
     //qDebug() << "Sustain Complement: " << sustainRComp << "\n";
 
     // Rv = R1 / R1 + R2
-    double div = static_cast<double>(_sustainRes)/(sustainRComp + _sustainRes);
+    double div = static_cast<double>(sustainRComp)/(sustainRComp + _sustainRes);
     //qDebug() << "Divsor de tensao (Resistencia): " << div << "\n";
 
     // Vsus = Vtotal * Rv
@@ -190,36 +184,28 @@ void ChartWidget::sustainCalculation() {
 
 void ChartWidget::decayCalculation() {
     int i;
+    double v;
 
     //qDebug() << "Decay Resistencia: " << _decayReleaseRes << "\n";
     //qDebug() << "_maxTime/2: " << _maxTime/2 << "\n";
     //qDebug() << "_holdTime: " << _holdTime << "\n";
+    //qDebug() << "_sustainVolt: " << _sustainVolt << "\n";
+    //qDebug() << "_maxAttackVolt: " << _maxAttackVolt << "\n";
 
     for (i = 0; i < _resolucao; i++) {
-        // O tempo é de decay começa no final do hold.
-        // Logo somamos o tempo final do hold mais uma 
-        // fracao do tempo até a metade do tempo total.
-        double t = _holdTime + (((_maxTime/2)-_holdTime) * (static_cast<double>(i) / (_resolucao - 1)));
+        double t = _holdTime + (((_maxTime / 2) - _holdTime) * (static_cast<double>(i) / (_resolucao - 1)));
 
-<<<<<<< Updated upstream
-        // Fórmula da descarga em um capacitor, com uma tensão final.
-        // Aqui vale destacar que como t não começa em zero, 
-        // devemos subtrair o tempo de hold de t na fórmula, pois 
-        // do contrário ele vai estar calculando essa curva a 
-        // partir do zero do grafico.
-        double v = _sustainVolt + (_maxAttackVolt - _sustainVolt) * exp(-(t - _holdTime) / (_decayReleaseRes * 1e-6) );
-=======
         if (_sustainVolt >= _maxAttackVolt) {
             return;
         } else {
             // Decaimento exponencial padrão
             v = _sustainVolt + (_maxAttackVolt - _sustainVolt) * exp(-(t - _holdTime) / (_decayReleaseRes * 1e-6));
         }
->>>>>>> Stashed changes
 
-        // Adiciona os pontos à série de preview
-        pontosPreview->append(t,v);
+        pontosPreview->append(t, v);
     }
+
+    _minDecayVolt = v;
 }
 
 void ChartWidget::releaseCalculation() {
@@ -236,11 +222,7 @@ void ChartWidget::releaseCalculation() {
         // Que nem no decay, devemos subtrair de t um valor 
         // que quando i = 0, a fórmula entenda que estamos 
         // calculando a tensão para o momento 0.
-<<<<<<< Updated upstream
-        double v = _sustainVolt * exp( -(t - (_maxTime/2)) / (_decayReleaseRes * 1e-6) );
-=======
         double v = _minDecayVolt * exp( -(t - (_maxTime/2)) / (_decayReleaseRes * 1e-6) );
->>>>>>> Stashed changes
 
         // Adiciona os pontos à série de preview
         pontosPreview->append(t,v);

@@ -26,7 +26,7 @@ public:
 
 private:
     double _maxTime, _holdTime, _amplitudeMax, _sustainVolt, _maxAttackVolt;
-    int _attackRes, _holdRes, _decayReleaseRes, _sustainRes, _resolucao;
+    int _attackRes, _holdRes, _decayReleaseRes, _sustainRes, _resolucao, _minDecayVolt;
 
     QLineSeries * pontosEnviados;
     QLineSeries * pontosPreview;

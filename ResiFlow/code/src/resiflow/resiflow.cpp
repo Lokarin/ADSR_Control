@@ -5,8 +5,6 @@ QT_USE_NAMESPACE
 ResiFlow::ResiFlow(QWidget *parent)
     : QMainWindow(parent)
 {
-<<<<<<< Updated upstream
-=======
     setupWidgets();
     setupLayout();
     setupStatusBar();
@@ -60,7 +58,6 @@ void ResiFlow::setupWidgets() {
 }
 
 void ResiFlow::setupLayout() {
->>>>>>> Stashed changes
     // Wid central
     QWidget * central = new QWidget(this);
     setCentralWidget(central);
@@ -69,16 +66,34 @@ void ResiFlow::setupLayout() {
     // Layout Principal Horizontal
     QHBoxLayout * layoutMain = new QHBoxLayout(central);
 
-    // Wid da esquerda
+    ///////////// Wid da esquerda
     QWidget * esquerda = new QWidget(central);
     esquerda->setMinimumWidth(800);
-    layoutMain->addWidget(esquerda);
+    QVBoxLayout * layoutEsquerda = new QVBoxLayout(esquerda);
+    layoutEsquerda->setAlignment(Qt::AlignTop);
 
-    // Wid da direita
+    // Freq picker (label + slider)
+    QVBoxLayout * freqPicker = new QVBoxLayout();
+    freqPicker->addWidget(freqLabel, 0, Qt::AlignHCenter);
+    freqPicker->addWidget(freqSlider, 0, Qt::AlignHCenter);
+    // Adiciona freqPicker ao layout do gráfico
+    static_cast<QHBoxLayout*>(chartGroup->layout())->addLayout(freqPicker);
+
+    // Layout knobs + freq
+    QHBoxLayout * layoutKnobsFreq = new QHBoxLayout();
+    layoutKnobsFreq->addWidget(knobsWidget);
+    layoutKnobsFreq->addWidget(botaoSend);
+
+    // Adiciona widgets à esquerda
+    //layoutEsquerda->addWidget(botaoSend);
+    layoutEsquerda->addWidget(chartGroup);
+    //layoutEsquerda->addWidget(knobsWidget);
+    layoutEsquerda->addLayout(layoutKnobsFreq);
+    esquerda->setLayout(layoutEsquerda);
+
+    ///////////// Wid da direita
     QWidget * direita = new QWidget(central);
     direita->setMinimumWidth(600);
-<<<<<<< Updated upstream
-=======
     QVBoxLayout * layoutDireita = new QVBoxLayout(direita);
     layoutDireita->setAlignment(Qt::AlignTop);
 
@@ -96,107 +111,29 @@ void ResiFlow::setupLayout() {
 
     // Adiciona os dois lados ao layout principal
     layoutMain->addWidget(esquerda);
->>>>>>> Stashed changes
     layoutMain->addWidget(direita);
+}
 
-    // Layout Vertical no Wid da esquerda
-    QVBoxLayout * layoutMainEsquerda = new QVBoxLayout();
-    layoutMainEsquerda->setAlignment(Qt::AlignTop);
-    esquerda->setLayout(layoutMainEsquerda);
+void ResiFlow::setupStatusBar() {
+    status = new QStatusBar(this);
+    setStatusBar(status);
+    status->showMessage("Aguardando conexão...");
+}
 
-    // Layout Vertical no Wid da direita
-    QVBoxLayout * layoutMainDireita = new QVBoxLayout();
-    layoutMainDireita->setAlignment(Qt::AlignTop);
-    direita->setLayout(layoutMainDireita);
-
-    // Criar um botao na esquerda
-    QPushButton * botao = new QPushButton("Enviar Curva Atual");
-
-    // Criar um botao na direita
-    QPushButton * botao1 = new QPushButton("Botao na Direita");
-
-    // Criar um botao na direita 2
-    QPushButton * botao2 = new QPushButton("Botao na Direita Dois");
-
-    // Cria widget do grafico
-    chart = new ChartWidget;
-    QHBoxLayout * chartLayout = new QHBoxLayout();
-    chartLayout->addWidget(chart);
-
-    // Criar tray de quatro knobs
-    QWidget * trayContainer = new QWidget(esquerda);
-    trayContainer->setMaximumHeight(300);
-    QHBoxLayout * knobTray = new QHBoxLayout(trayContainer);
-
-    QStringList knobNames = {"Attack", "Decay/Release", "Sustain", "Hold"};
-    for (const QString &name : knobNames) {
-        // Layout vertical para cada set de knobs+txt
-        QWidget * knobTextContainer = new QWidget();
-        QVBoxLayout * textKnobLayout = new QVBoxLayout(knobTextContainer);
-
-        // Cria um knob
-        CustomKnob * knob = new CustomKnob();
-        //knob->setFixedSize(200,200);
-        //knobTray->addWidget(knob);
-        knob->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        knob->setValue(100);
-
-        // Cria o texto do knob
-        QString textLabel = name+": "+QString::number(100);
-        QLabel * label = new QLabel(textLabel);
-        label->setAlignment(Qt::AlignCenter);
-        knobs[name] = knob;
-
-        connect(knob, &QDial::valueChanged, this, [=](int value){
-            label->setText(QString("%1: %2").arg(name).arg(value));
-            getKnobValues();
-        });
-        
-        textKnobLayout->addWidget(knob);
-        textKnobLayout->addWidget(label);
-
-        knobTray->addWidget(knobTextContainer);
-    }
-
-    // Slider para frequencia
-    QVBoxLayout * freqPicker = new QVBoxLayout();
-    freqLabels = {"60", "100", "120", "150", "180"};
-    freqSlider = new QSlider(Qt::Vertical);
-    freqSlider->setMinimum(0);
-    freqSlider->setMaximum(freqLabels.size() - 1);
-    freqSlider->setTickInterval(1);
-    freqSlider->setTickPosition(QSlider::TicksBothSides);
-    freqSlider->setSliderPosition(4);
-    freqLabel = new QLabel(QString("BPM: 180"));
-    QFontMetrics fm(freqLabel->font());
-    int freqLabelW = fm.horizontalAdvance("BPM: 180");  // largura do maior valor
-    freqLabel->setMinimumWidth(freqLabelW);
-
-    freqPicker->addWidget(freqLabel, 0, Qt::AlignHCenter);
-    freqPicker->addWidget(freqSlider, 0, Qt::AlignHCenter);
-
-    // Adicionando as coisas aos layouts
-    layoutMainEsquerda->addWidget(botao);
-    chartLayout->addLayout(freqPicker);
-    layoutMainEsquerda->addLayout(chartLayout);
-    layoutMainEsquerda->addWidget(trayContainer);
-
-    //layoutMainDireita->addLayout(freqPicker);
-    layoutMainDireita->addWidget(botao1);
-    layoutMainDireita->addWidget(botao2);
-    
-    // Connects
-    connect(botao, &QPushButton::clicked, this, [=]() {
+void ResiFlow::setupConnects() {
+    // Botao send atualiza os pontos reais e envia os valores
+    // de potenciometros, BPM e Freq
+    connect(botaoSend, &QPushButton::clicked, this, [=]() {
           chart->updatePontosReais(); 
+          sendSerialData(1, 0);
     });
 
+    // Slider de BPM atualizar label e chart simulado
     connect(freqSlider, &QSlider::valueChanged, this, [=]() {
            int freqIndex = freqSlider->value();
            freqLabel->setText(QString("BPM: %1").arg(freqLabels[freqIndex]));
-           getKnobValues();
+           updateChart();
     });
-<<<<<<< Updated upstream
-=======
 
     // Connect para statusbar mostrar mensagens
     connect(conexaoGroup, &SerialWidget::statusMessage, this, [this](const QString &msg){
@@ -228,12 +165,12 @@ void ResiFlow::setupLayout() {
 
     // Ao mudar o checkbox, enviar o status do modo do trigger
     connect(triggerModeSwitch, &QCheckBox::toggled, this, [=](bool checked) {
-        if (checked) {
-            sendSerialData(0, 0);
-        } else {
-            sendSerialData(0, 1);
-        }
-    });
+    if (checked) {
+        sendSerialData(0, 0);
+    } else {
+        sendSerialData(0, 1);
+    }
+});
 
     // Conects entre resiflow e presetWidget
     connect(this, &ResiFlow::parametersChanged, presetWidget, &PresetWidget::receiveParameters);
@@ -264,21 +201,16 @@ void ResiFlow::setupLayout() {
                 }
             }
     });
->>>>>>> Stashed changes
 }
 
-void ResiFlow::getKnobValues(){
-            int A = (knobs["Attack"]->value()*100)+1;
-            int DR = (knobs["Decay/Release"]->value()*100)+1;
-            int S = (knobs["Sustain"]->value()*100)+1;
-            int H = (knobs["Hold"]->value()*100)+1;
+AHDSRValues ResiFlow::getAHDSRValues(){
+    QVector<int> knobValues = knobsWidget->getKnobValues();
+    
+    int bpmIndex = freqSlider->value();
+    int bpmVal = freqLabels[bpmIndex].toInt();
+    
+    int freq = 500;
 
-            int freqIndex = freqSlider->value();
-            int freqVal = freqLabels[freqIndex].toInt();
-
-<<<<<<< Updated upstream
-            chart->updateChartSim(A, H, DR, S, freqVal, 5);
-=======
     return {
         knobValues[0],  
         knobValues[1],  
@@ -348,7 +280,6 @@ void ResiFlow::onLoadParameters(int attack, int hold, int sustain, int decayRele
 
     // Atualiza gráfico simulado com o preset selecionado
     updateChart();
->>>>>>> Stashed changes
 }
 
 ResiFlow::~ResiFlow() = default;

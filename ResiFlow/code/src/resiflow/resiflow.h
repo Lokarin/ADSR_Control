@@ -8,18 +8,27 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QSlider>
-<<<<<<< Updated upstream
-=======
 #include <QStatusBar>
 #include <QGroupBox>
 #include <QShortcut>
 #include <QKeyCombination>
 #include <QCheckBox>
 #include <QFileDialog>
->>>>>>> Stashed changes
 
 #include "chartwidget/chartwidget.h"
 #include "customknob/customknob.h"
+#include "serialwidget/serialwidget.h"
+#include "presetwidget/presetwidget.h"
+#include "knobswidget/knobswidget.h"
+
+struct AHDSRValues {
+    int attack;
+    int hold;
+    int sustain;
+    int decayRelease;
+    int bpm;
+    int freq;
+};
 
 class ResiFlow : public QMainWindow
 {
@@ -28,22 +37,41 @@ class ResiFlow : public QMainWindow
 public:
     ResiFlow(QWidget *parent = nullptr);
     ~ResiFlow();
-private:
-    QMap<QString, CustomKnob*> knobs;
-    ChartWidget * chart;
 
+private:
+    // Objeto Status Bar
+    QStatusBar * status;
+
+    // botao para send
+    QPushButton * botaoSend;
+
+    // serialwidget
+    SerialWidget * conexaoGroup;
+
+    // presetwidget
+    PresetWidget * presetWidget;
+
+    // grafico
+    ChartWidget * chart;
+    QGroupBox * chartGroup;
+
+    // vetor com os knobs
+    KnobsWidget * knobsWidget;
+
+    // slider para frequencia
     QSlider * freqSlider;
     QLabel * freqLabel;
     QStringList freqLabels;
 
-<<<<<<< Updated upstream
-=======
     // controle de modos
     QCheckBox * triggerModeSwitch;
     QPushButton * triggerButton;
 
+    QMap<QString, CustomKnob*> knobs;
+
     // botao salva grafico
     QPushButton * botaoSalvaBmp;
+
 
     void setupWidgets();
     void setupLayout();
@@ -53,7 +81,13 @@ private:
     AHDSRValues getAHDSRValues();
     void updateChart();
     void sendSerialData(int rxHandler, int triggerCmd);
->>>>>>> Stashed changes
     void getKnobValues();
+
+signals:
+    void parametersChanged(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
+
+private slots:
+    void onParametersRequest();
+    void onLoadParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
 };
 #endif // RESIFLOW_H
