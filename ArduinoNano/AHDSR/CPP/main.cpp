@@ -10,6 +10,9 @@
 
 #define F_CPU 16000000UL
 
+//=============================================================================
+// INCLUDES
+//=============================================================================
 #include "funsape/funsapeLibGlobalDefines.hpp"
 #include "funsape/peripheral/funsapeLibAdc.hpp"
 #include "funsape/peripheral/funsapeLibTimer0.hpp"
@@ -21,7 +24,9 @@
 #include "funsape/peripheral/funsapeLibTwi.hpp"
 #include "spi/atmega328pSpi.hpp"
 
-// Definitions
+//=============================================================================
+// DEFINITIONS
+//=============================================================================
 #define TRIGGER_SECTION           0x00
 #define TRIGGER_AUTO              0x00
 #define TRIGGER_MANUAL_AND_OFF    0x01
@@ -32,9 +37,22 @@
 #define ADC_CMD_BYTE              0b11000011
 #define WAVE_FORM_CMD_BYTE        0b00111100
 
-// Global Variables
-volatile bool_t newUsartData = false;
+//=============================================================================
+// ENUMERATIONS
+//=============================================================================
+enum {
+    SPI_ADC,
+    SEND_ADC_BYTE,
+    SPI_ADC_END,
+    SPI_WAVE_FORM,
+    SEND_WAVE_FORM_BYTE,
+    SPI_WAVE_FORM_END
+} typedef SpiState;
 
+//=============================================================================
+// GLOBAL VARIABLES
+//=============================================================================
+volatile bool_t newUsartData = false;
 volatile bool_t spiBusy = false;
 volatile bool_t newAdcData = false;
 volatile bool_t newWaveFormData = false;
@@ -49,24 +67,22 @@ volatile uint8_t triggerByte = 1;
 volatile uint8_t timer1FreqByteHigh = 0;
 volatile uint8_t timer1FreqByteLow = 0;
 
-enum {
-    SPI_ADC,
-    SEND_ADC_BYTE,
-    SPI_ADC_END,
-    SPI_WAVE_FORM,
-    SEND_WAVE_FORM_BYTE,
-    SPI_WAVE_FORM_END
-} typedef SpiState;
-
 SpiState spiState;
 
-// Function Prototypes
+//=============================================================================
+// FUNCTION PROTOTYPES
+//=============================================================================
 void jackDetectorInput();
 void updateDigipots();
 void setTriggerAuto();
 void setTriggerManualOn();
 void setTriggerManualOff();
 void setTrigger(uint8_t triggerMod);
+void checkPairing();
+
+//=============================================================================
+// TRIGGER FUNCTIONS
+//=============================================================================
 
 // Change between EXTERNAL or INTERNAL Trigger
 void jackDetectorInput()
@@ -79,20 +95,6 @@ void jackDetectorInput()
         setTrigger(triggerByte);
         int1.deactivateInterrupt();
     }
-}
-
-// Configure DS1803 via I2C
-void updateDigipots()
-{
-    // First DS1803
-    twi.setDevice(SLA0_W >> 1, false);  // 0x50 >> 1 = 0x28
-    uint8_t payload0[] = { attackByte, decayAndReleaseByte };
-    twi.writeReg(WR_POT_0, payload0, 2);
-
-    // Second DS1803
-    twi.setDevice(SLA1_W >> 1, false);  // 0x52 >> 1 = 0x29
-    uint8_t payload1[] = { holdByte, sustainByte };
-    twi.writeReg(WR_POT_0, payload1, 2);
 }
 
 // Set Trigger Function
@@ -135,6 +137,28 @@ void setTriggerManualOff()
     clrBit(PORTB, PB1);
 }
 
+//=============================================================================
+// DIGIPOT FUNCTIONS
+//=============================================================================
+
+// Configure DS1803 via I2C
+void updateDigipots()
+{
+    // First DS1803
+    twi.setDevice(SLA0_W >> 1, false);  // 0x50 >> 1 = 0x28
+    uint8_t payload0[] = { attackByte, decayAndReleaseByte };
+    twi.writeReg(WR_POT_0, payload0, 2);
+
+    // Second DS1803
+    twi.setDevice(SLA1_W >> 1, false);  // 0x52 >> 1 = 0x29
+    uint8_t payload1[] = { holdByte, sustainByte };
+    twi.writeReg(WR_POT_0, payload1, 2);
+}
+
+//=============================================================================
+// PAIRING FUNCTIONS
+//=============================================================================
+
 void checkPairing()
 {
     if(bit_is_set(PIND, PD2)) {
@@ -145,6 +169,9 @@ void checkPairing()
     }
 }
 
+//=============================================================================
+// MAIN FUNCTION
+//=============================================================================
 int main()
 {
     // Configure PCINT20, PD4
@@ -210,10 +237,6 @@ int main()
     // Check VCA Pairing
     checkPairing();
 
-    // Debug
-    setBit(DDRD, PD7);
-    setBit(PORTD, PD7);
-
     // Enable Global Interrupts
     sei();
 
@@ -255,6 +278,10 @@ int main()
 
     return 0;
 }
+
+//=============================================================================
+// INTERRUPT HANDLERS
+//=============================================================================
 
 // ADC Conversion Interrupt
 void adcConversionCompleteCallback(void)
@@ -324,7 +351,6 @@ void int1InterruptCallback()
 void pcint2InterruptCallback()
 {
     jackDetectorInput();
-    cplBit(PORTD, PD7);
 }
 
 // USART Interrupt
