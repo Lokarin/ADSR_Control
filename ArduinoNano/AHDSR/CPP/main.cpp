@@ -4,7 +4,7 @@
  * Author:   Gabriel Garcia; Henrique Onuki
  * Created:  2025-04-19
  * Modified: 2025-07-07
- * Version:  8.0
+ * Version:  9.0
  * Notes:    Controle de Digipots. Fcpu = 16 MHz.
  */
 
@@ -50,24 +50,44 @@ enum {
 } typedef SpiState;
 
 //=============================================================================
+// STRUCTURES
+//=============================================================================
+typedef struct {
+    // Flags booleanas
+    volatile bool_t newUsartData;
+    volatile bool_t spiBusy;
+    volatile bool_t newAdcData;
+    volatile bool_t newWaveFormData;
+    
+    // Estados do sistema
+    volatile SpiState spiState;
+    volatile uint8_t triggerMode;
+    
+    // Dados de controle
+    volatile uint8_t timer1FreqHigh;
+    volatile uint8_t timer1FreqLow;
+} SystemFlags;
+
+//=============================================================================
 // GLOBAL VARIABLES
 //=============================================================================
-volatile bool_t newUsartData = false;
-volatile bool_t spiBusy = false;
-volatile bool_t newAdcData = false;
-volatile bool_t newWaveFormData = false;
+SystemFlags systemFlags = {
+    .newUsartData = false,
+    .spiBusy = false,
+    .newAdcData = false,
+    .newWaveFormData = false,
+    .spiState = SPI_ADC,
+    .triggerMode = 1,
+    .timer1FreqHigh = 0,
+    .timer1FreqLow = 0
+};
+
 volatile uint16_t adcValue = 0;
 
 volatile uint8_t attackByte = 2;
 volatile uint8_t decayAndReleaseByte = 4;
 volatile uint8_t holdByte = 8;
 volatile uint8_t sustainByte = 16;
-
-volatile uint8_t triggerByte = 1;
-volatile uint8_t timer1FreqByteHigh = 0;
-volatile uint8_t timer1FreqByteLow = 0;
-
-SpiState spiState;
 
 //=============================================================================
 // FUNCTION PROTOTYPES
@@ -92,7 +112,7 @@ void jackDetectorInput()
         timer1.setOutputMode(Timer1::OutputMode::NORMAL, Timer1::OutputMode::NORMAL);
         int1.activateInterrupt();
     } else {                            // INTERNAL
-        setTrigger(triggerByte);
+        setTrigger(systemFlags.triggerMode);
         int1.deactivateInterrupt();
     }
 }
@@ -237,37 +257,41 @@ int main()
     // Check VCA Pairing
     checkPairing();
 
+    // Debug
+    setBit(DDRD, PD7);
+    setBit(PORTD, PD7);
+
     // Enable Global Interrupts
     sei();
 
     while(true) {
-        if(newUsartData && !spiBusy) {
-            newUsartData = false;
-            timer1.setCompareAValue((timer1FreqByteHigh << 8) | timer1FreqByteLow);
+        if(systemFlags.newUsartData && !systemFlags.spiBusy) {
+            systemFlags.newUsartData = false;
+            timer1.setCompareAValue((systemFlags.timer1FreqHigh << 8) | systemFlags.timer1FreqLow);
             updateDigipots();
 
             SPDR = WAVE_FORM_CMD_BYTE;
-            //spiBusy = true;
-            spiState = SPI_WAVE_FORM;
+            //systemFlags.spiBusy = true;
+            systemFlags.spiState = SPI_WAVE_FORM;
             setBit(PORTC, PC1);
 
-        } else if(newAdcData && !spiBusy) {
+        } else if(systemFlags.newAdcData && !systemFlags.spiBusy) {
 
             SPDR = ADC_CMD_BYTE;
-            spiBusy = true;
-            spiState = SPI_ADC;
+            systemFlags.spiBusy = true;
+            systemFlags.spiState = SPI_ADC;
             setBit(PORTC, PC1);
         }
 
-        switch(spiState) {
+        switch(systemFlags.spiState) {
 
         case SEND_WAVE_FORM_BYTE:
-            spiState = SPI_WAVE_FORM_END;
+            systemFlags.spiState = SPI_WAVE_FORM_END;
             setBit(PORTC, PC1);
             break;
 
         case SEND_ADC_BYTE:
-            spiState = SPI_ADC_END;
+            systemFlags.spiState = SPI_ADC_END;
             setBit(PORTC, PC1);
             break;
 
@@ -288,7 +312,7 @@ void adcConversionCompleteCallback(void)
 {
     adcValue = ADCH;
     timer0.clearCompareAInterruptRequest();
-    newAdcData = true;
+    systemFlags.newAdcData = true;
 }
 
 // SPI Interrupt
@@ -301,27 +325,27 @@ void Spi::spiCallbackInterrupt(uint8_t received)
 
     clrBit(PORTC, PC1);
 
-    switch(spiState) {
+    switch(systemFlags.spiState) {
     case SPI_WAVE_FORM:
         SPDR = 0;
-        spiState = SEND_WAVE_FORM_BYTE;
+        systemFlags.spiState = SEND_WAVE_FORM_BYTE;
         break;
 
     case SPI_WAVE_FORM_END:
         timer0.setClockSource(Timer0::ClockSource::PRESCALER_1024);
         timer0.setCounterValue(0);
-        newWaveFormData = false;
-        spiBusy = false;
+        systemFlags.newWaveFormData = false;
+        systemFlags.spiBusy = false;
         break;
 
     case SPI_ADC:
         SPDR = adcValue;
-        spiState = SEND_ADC_BYTE;
+        systemFlags.spiState = SEND_ADC_BYTE;
         break;
 
     case SPI_ADC_END:
-        newAdcData = false;
-        spiBusy = false;
+        systemFlags.newAdcData = false;
+        systemFlags.spiBusy = false;
         break;
 
     default:
@@ -351,6 +375,7 @@ void int1InterruptCallback()
 void pcint2InterruptCallback()
 {
     jackDetectorInput();
+    cplBit(PORTD, PD7);
 }
 
 // USART Interrupt
@@ -373,17 +398,17 @@ void usartReceptionCompleteCallback()
 
     if(byteIndex == expectedBytes) {
         if(buffer[0] == TRIGGER_SECTION) {
-            triggerByte = buffer[1];
-            setTrigger(triggerByte);
+            systemFlags.triggerMode = buffer[1];
+            setTrigger(systemFlags.triggerMode);
         } else {
             attackByte = buffer[1];
             holdByte = buffer[2];
             sustainByte = buffer[3];
             decayAndReleaseByte = buffer[4];
-            timer1FreqByteHigh = buffer[5];
-            timer1FreqByteLow = buffer[6];
+            systemFlags.timer1FreqHigh = buffer[5];
+            systemFlags.timer1FreqLow = buffer[6];
 
-            newUsartData = true;
+            systemFlags.newUsartData = true;
             timer0.setClockSource(Timer0::ClockSource::DISABLED);
         }
         byteIndex = 0;
