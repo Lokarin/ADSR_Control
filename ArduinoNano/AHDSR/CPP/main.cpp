@@ -1,18 +1,33 @@
-/*
- * Project:  Digipot Control
- * File:     main.cpp
- * Author:   Gabriel Garcia; Henrique Onuki
- * Created:  2025-04-19
- * Modified: 2025-07-07
- * Version:  10.0
- * Notes:    Controle de Digipots. Fcpu = 16 MHz.
- */
+// =============================================================================
+// Project:         Potentia AHDSR Module Firmware
+// File:            main.cpp
+// Author:          Gabriel Garcia; Henrique Amaral Onuki
+// Created:         2025-06-25
+// Modified:        2025-07-07
+// Version:         11.0
+// Notes:           Firmware do módulo AHDSR do Projeto Potentia. Desenvolvido
+//                      com a biblioteca FunSAPE para plataforma AVR (ATmega328P).
+//                      Este módulo realiza controle digital de envelope utilizando
+//                      um par de potenciômetros digitais (DS1803) via I2C, leitura
+//                      analógica contínua (ADC), comunicação SPI com outro módulo
+//                      (VCA), e recebe comandos seriais via USART.
+// Purpose:         Controlar a forma do envelope de volume de sinais de áudio com
+//                      base em triggers internos ou externos, além de receber comandos
+//                      do aplicativo de controle para ajuste dinâmico de parâmetros.
+//                      O sistema utiliza timers, interrupções e uma máquina de estados
+//                      para orquestrar a operação em tempo real.
+// =============================================================================
+
+// =============================================================================
+// PRECOMPILER CONSTANT DEFINITIONS
+// =============================================================================
 
 #define F_CPU 16000000UL
 
-//=============================================================================
-// INCLUDES
-//=============================================================================
+// =============================================================================
+// DEPENDENCIES
+// =============================================================================
+
 #include "funsape/funsapeLibGlobalDefines.hpp"
 #include "funsape/peripheral/funsapeLibAdc.hpp"
 #include "funsape/peripheral/funsapeLibTimer0.hpp"
@@ -24,9 +39,10 @@
 #include "funsape/peripheral/funsapeLibTwi.hpp"
 #include "spi/atmega328pSpi.hpp"
 
-//=============================================================================
-// DEFINITIONS
-//=============================================================================
+// =============================================================================
+// CONSTANT DEFINITIONS
+// =============================================================================
+
 #define TRIGGER_SECTION           0x00
 #define TRIGGER_AUTO              0x00
 #define TRIGGER_MANUAL_AND_OFF    0x01
@@ -40,6 +56,7 @@
 //=============================================================================
 // ENUMERATIONS
 //=============================================================================
+
 enum {
     SPI_ADC,
     SEND_ADC_BYTE,
@@ -49,9 +66,10 @@ enum {
     SPI_WAVE_FORM_END
 } typedef SpiState;
 
-//=============================================================================
-// STRUCTURES
-//=============================================================================
+// =============================================================================
+// NEW DATA TYPES
+// =============================================================================
+
 typedef union {
     struct {
         bool_t newUsartData     : 1;        // Bit 0
@@ -71,9 +89,16 @@ typedef struct {
     volatile uint8_t timer1FreqLow;         // Byte baixo da frequência Timer1
 } SystemFlags;
 
+// =============================================================================
+// STATIC FUNCTION DECLARATIONS
+// =============================================================================
+
+// NONE
+
 //=============================================================================
 // GLOBAL VARIABLES
 //=============================================================================
+
 SystemFlags systemFlags = {
     .boolFlags = {.allFlags = 0},          
     .spiState = SPI_ADC,
@@ -92,6 +117,7 @@ volatile uint8_t sustainByte = 16;
 //=============================================================================
 // FUNCTION PROTOTYPES
 //=============================================================================
+
 void jackDetectorInput();
 void updateDigipots();
 void setTriggerAuto();
@@ -192,8 +218,19 @@ void checkPairing()
 //=============================================================================
 // MAIN FUNCTION
 //=============================================================================
+
 int main()
 {
+    // =========================================================================
+    // Variable declaration
+    // =========================================================================
+
+    // NONE
+    
+    // =========================================================================
+    // PCINT2 CONFIGURATION
+    // =========================================================================
+
     // Configure PCINT20, PD4
     pcint2.enablePins(Pcint2::Pin::PIN_PCINT20);
     pcint2.clearInterruptRequest();
@@ -201,30 +238,48 @@ int main()
     clrBit(DDRD, PD4);
     setBit(PORTD, PD4);
 
-    // Configure INT0
+    // =========================================================================
+    // INT0 CONFIGURATION
+    // =========================================================================
+
     int0.init(Int0::SenseMode::BOTH_EDGES);
     int0.activateInterrupt();
     clrBit(DDRD, PD2);
     setBit(PORTD, PD2);
 
-    // Configure INT1
+    // =========================================================================
+    // INT1 CONFIGURATION
+    // =========================================================================
+
     int1.init(Int1::SenseMode::BOTH_EDGES);
 
-    // Configure SPI
+    // =========================================================================
+    // SPI CONFIGURATION
+    // =========================================================================
+
     Spi::init(Spi::Mode::SLAVE, Spi::ClockRate::FOSC_64, Spi::DataMode::MODE_3);
     Spi::activateSpiCallbackInterrupt();
 
-    // Configure I2C
+    // =========================================================================
+    // I2C CONFIGURATION
+    // =========================================================================
+
     twi.init(100'000);
 
-    // Configure USART
+    // =========================================================================
+    // USART0 CONFIGURATION
+    // =========================================================================
+
     usart0.setFrameFormat(Usart0::FrameFormat::FRAME_FORMAT_8_N_1);
     usart0.setBaudRate(Usart0::BaudRate::BAUD_RATE_9600);
     usart0.init();
     usart0.enableReceiver();
     usart0.activateReceptionCompleteInterrupt();
 
-    // Configure ADC
+    // =========================================================================
+    // ADC CONFIGURATION
+    // =========================================================================
+
     adc.init(
             Adc::Mode::AUTO_TIMER0_COMPA,
             Adc::Reference::POWER_SUPPLY,
@@ -236,20 +291,33 @@ int main()
     adc.activateInterrupt();
     adc.enable();
 
-    // Configure Timer0
+    // =========================================================================
+    // TIMER0 CONFIGURATION
+    // =========================================================================
+
     timer0.setCompareAValue(155);
     timer0.setMode(Timer0::Mode::CTC_OCRA);
     timer0.clearCompareAInterruptRequest();
 
-    // Configure Timer1
+    // =========================================================================
+    // TIMER1 CONFIGURATION
+    // =========================================================================
+
     timer1.init(Timer1::Mode::CTC_OCRA, Timer1::ClockSource::PRESCALER_256);
     timer1.setCompareAValue(10416);
     timer1.setOutputMode(Timer1::OutputMode::TOGGLE_ON_COMPARE, Timer1::OutputMode::NORMAL);
     setBit(DDRB, PB1);
 
-    // Set PC1 (Communication PIN)
+    // =========================================================================
+    // COMMUNICATION PIN CONFIGURATION
+    // =========================================================================
+
     setBit(DDRC, PC1);
     clrBit(PORTC, PC1);
+
+    // =========================================================================
+    // INIT CHECKS
+    // =========================================================================
 
     // Chack Jack Detector
     jackDetectorInput();
@@ -257,12 +325,15 @@ int main()
     // Check VCA Pairing
     checkPairing();
 
-    // Debug
-    setBit(DDRD, PD7);
-    setBit(PORTD, PD7);
+    // =========================================================================
+    // ENABLE GLOBAL INTERRUPTS
+    // =========================================================================
 
-    // Enable Global Interrupts
     sei();
+
+    // =========================================================================
+    // MAIN LOOP
+    // =========================================================================
 
     while(true) {
         if(systemFlags.boolFlags.newUsartData && !systemFlags.boolFlags.spiBusy) {
@@ -375,7 +446,6 @@ void int1InterruptCallback()
 void pcint2InterruptCallback()
 {
     jackDetectorInput();
-    cplBit(PORTD, PD7);
 }
 
 // USART Interrupt
@@ -414,3 +484,7 @@ void usartReceptionCompleteCallback()
         byteIndex = 0;
     }
 }
+
+// =============================================================================
+// END OF FILE
+// =============================================================================
