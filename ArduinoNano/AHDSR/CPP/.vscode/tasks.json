@@ -1,0 +1,527 @@
+{
+    "version": "2.0.0",
+    "options": {
+        "env": {
+            "BUILD_DIR": "build",
+            "BUILD_NAME": "application",
+            "COMPILE_C_AS_CPP": "1",
+            "COMPILER_DEBUG": "0",
+            "COMPILER_OPT": "-Os", // -O0/-O1/-O2/-O3/-Os/-Ofast/-Og
+            "COMPILER_PATH": "",
+            "COMPILER_STD_C": "gnu17", // c89/gnu89/c90/gnu90/c99/gnu99/c11/gnu11/c17/gnu17/c18
+            "COMPILER_STD_CPP": "c++17", // c++98/gnu++98/c++03/gnu++03/c++11/gnu++11/c++14/gnu++14/c++17/gnu++17/c++20/gnu++20
+            "FUNSAPE_PATH": "XXXX",
+            "LIBRARY_PATH": "",
+            "MCU_DEVICE_CORE_FLOAT_ABI": "",
+            "MCU_DEVICE_CORE_FPU": "",
+            "MCU_DEVICE_NAME": "atmega328p", //
+            "PROGRAMMER_CONFIG_FILE": "/etc/avrdude.conf",
+            "PROGRAMMER_TYPE": "arduino", // arduino, ST_LINK_JTAG, ST_LINK_SWD
+            "USER_DEFINES_ASM": "",
+            "USER_DEFINES_C": "USE_HAL_DRIVER", // USE_HAL_DRIVER
+            "USER_DEFINES_CPP": "USE_HAL_DRIVER", // USE_HAL_DRIVER
+            "USER_FLAGS_ASM": "",
+            "USER_FLAGS_C": "-Wno-switch -fno-threadsafe-statics -Wl,--gc-sections",
+            "USER_FLAGS_CPP": "-Wno-switch -fno-threadsafe-statics -Wl,--gc-sections -mrelax",
+            "USER_LIBS": ""
+        }
+    },
+    "tasks": [
+        // MCU assemble
+        {
+            "label": "MCU assemble",
+            "detail": "MCU - Assemble project",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "assemble"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU clean
+        {
+            "label": "MCU clean",
+            "detail": "MCU - Delete build files",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "clean"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU compile
+        {
+            "label": "MCU compile",
+            "detail": "MCU - Compile project",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "compile"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU program
+        {
+            "label": "MCU program",
+            "detail": "MCU - Write into device",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "program"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU flashErase
+        {
+            "label": "MCU flashErase",
+            "detail": "MCU - Erase device flash memory",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "flashErase"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU assemble/clean/program
+        {
+            "label": "MCU assemble/clean/program",
+            "detail": "MCU - Assemble project, delete build files and write into device",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "assembleCleanProgram"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU assemble/program
+        {
+            "label": "MCU assemble/program",
+            "detail": "MCU - Assemble project and write into device",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "assembleProgram"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU clean/assemble
+        {
+            "label": "MCU clean/assemble",
+            "detail": "MCU - Reassemble project",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "cleanAssemble"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU clean/assemble/clean/program
+        {
+            "label": "MCU clean/assemble/clean/program",
+            "detail": "MCU - Reassemble project, delete build files and write into device",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "cleanAssembleCleanProgram"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU clean/assemble/program
+        {
+            "label": "MCU clean/assemble/program",
+            "detail": "MCU - Reassemble project and write into device",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "cleanAssembleProgram"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU clean/compile
+        {
+            "label": "MCU clean/compile",
+            "detail": "MCU - Recompile project",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "cleanCompile"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU clean/compile/clean/program
+        {
+            "label": "MCU clean/compile/clean/program",
+            "detail": "MCU - Recompile project, delete build files and write into device",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "cleanCompileCleanProgram"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU clean/compile/program
+        {
+            "label": "MCU clean/compile/program",
+            "detail": "MCU - Recompile project and write into device",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "cleanCompileProgram"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU compile/clean/program
+        {
+            "label": "MCU compile/clean/program",
+            "detail": "MCU - Compile project, delete build files and write into device",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "compileCleanProgram"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU compile/program
+        {
+            "label": "MCU compile/program",
+            "detail": "MCU - Compile project and write into device",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "compileProgram"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        },
+        // MCU do Nothing
+        {
+            "label": "MCU Do Nothing",
+            "detail": "MCU - Do nothing. Use to evaluate makefile variables",
+            "command": "make",
+            "args": [
+                {
+                    "quoting": "weak",
+                    "value": "doNothing"
+                }
+            ],
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "clear": true,
+                "close": false,
+                "echo": true,
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "showReuseMessage": true
+            }
+        }
+    ]
+}

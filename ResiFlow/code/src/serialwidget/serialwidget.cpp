@@ -168,7 +168,7 @@ void SerialWidget::sendAHDSRData(int rxHandler, int triggerCmd, int atk, int hol
         data.append(static_cast<char>((ocr1aValue >> 8) & 0xFF));
         data.append(static_cast<char>(ocr1aValue & 0xFF));
 
-        data.append(static_cast<char>(ocr2aValue));
+        //data.append(static_cast<char>(ocr2aValue));
 
         // enviando os valores
         bytesEscritos = serial->write(data);

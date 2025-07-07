@@ -1,0 +1,15 @@
+CompileFlags:
+  Add:
+    [
+      "-I/usr/avr/include",
+      "-I/usr/lib/avr/include",
+      "-mmcu=atmega328p",
+      "-target",
+      "avr",
+    ]
+
+InlayHints:
+  ParameterNames: false
+  TypeHints: false
+  Designators: false
+  TrailingReturnTypes: false
