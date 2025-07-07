@@ -4,7 +4,7 @@
  * Author:   Gabriel Garcia; Henrique Onuki
  * Created:  2025-04-19
  * Modified: 2025-07-07
- * Version:  9.0
+ * Version:  10.0
  * Notes:    Controle de Digipots. Fcpu = 16 MHz.
  */
 
@@ -52,30 +52,30 @@ enum {
 //=============================================================================
 // STRUCTURES
 //=============================================================================
+typedef union {
+    struct {
+        bool_t newUsartData     : 1;        // Bit 0
+        bool_t spiBusy          : 1;        // Bit 1
+        bool_t newAdcData       : 1;        // Bit 2
+        bool_t newWaveFormData  : 1;        // Bit 3
+        uint8_t unused          : 4;        // Bits 4-7 (future flags)
+    };
+    volatile uint8_t allFlags;              // Acess all bits as uint8_t
+} BooleanFlags_t;
+
 typedef struct {
-    // Flags booleanas
-    volatile bool_t newUsartData;
-    volatile bool_t spiBusy;
-    volatile bool_t newAdcData;
-    volatile bool_t newWaveFormData;
-    
-    // Estados do sistema
-    volatile SpiState spiState;
-    volatile uint8_t triggerMode;
-    
-    // Dados de controle
-    volatile uint8_t timer1FreqHigh;
-    volatile uint8_t timer1FreqLow;
+    volatile BooleanFlags_t boolFlags;      // Boolean flags
+    volatile SpiState spiState;             // SPI machine state
+    volatile uint8_t triggerMode;           // Trigger mode
+    volatile uint8_t timer1FreqHigh;        // Byte alto da frequência Timer1
+    volatile uint8_t timer1FreqLow;         // Byte baixo da frequência Timer1
 } SystemFlags;
 
 //=============================================================================
 // GLOBAL VARIABLES
 //=============================================================================
 SystemFlags systemFlags = {
-    .newUsartData = false,
-    .spiBusy = false,
-    .newAdcData = false,
-    .newWaveFormData = false,
+    .boolFlags = {.allFlags = 0},          
     .spiState = SPI_ADC,
     .triggerMode = 1,
     .timer1FreqHigh = 0,
@@ -107,11 +107,11 @@ void checkPairing();
 // Change between EXTERNAL or INTERNAL Trigger
 void jackDetectorInput()
 {
-    if(bit_is_set(PIND, PD4)) {       // EXTERNAL
+    if(bit_is_set(PIND, PD4)) {             // EXTERNAL
         timer1.setClockSource(Timer1::ClockSource::DISABLED);
         timer1.setOutputMode(Timer1::OutputMode::NORMAL, Timer1::OutputMode::NORMAL);
         int1.activateInterrupt();
-    } else {                            // INTERNAL
+    } else {                                // INTERNAL
         setTrigger(systemFlags.triggerMode);
         int1.deactivateInterrupt();
     }
@@ -265,20 +265,20 @@ int main()
     sei();
 
     while(true) {
-        if(systemFlags.newUsartData && !systemFlags.spiBusy) {
-            systemFlags.newUsartData = false;
+        if(systemFlags.boolFlags.newUsartData && !systemFlags.boolFlags.spiBusy) {
+            systemFlags.boolFlags.newUsartData = false;
             timer1.setCompareAValue((systemFlags.timer1FreqHigh << 8) | systemFlags.timer1FreqLow);
             updateDigipots();
 
             SPDR = WAVE_FORM_CMD_BYTE;
-            //systemFlags.spiBusy = true;
+            //systemFlags.boolFlags.spiBusy = true;
             systemFlags.spiState = SPI_WAVE_FORM;
             setBit(PORTC, PC1);
 
-        } else if(systemFlags.newAdcData && !systemFlags.spiBusy) {
+        } else if(systemFlags.boolFlags.newAdcData && !systemFlags.boolFlags.spiBusy) {
 
             SPDR = ADC_CMD_BYTE;
-            systemFlags.spiBusy = true;
+            systemFlags.boolFlags.spiBusy = true;
             systemFlags.spiState = SPI_ADC;
             setBit(PORTC, PC1);
         }
@@ -312,7 +312,7 @@ void adcConversionCompleteCallback(void)
 {
     adcValue = ADCH;
     timer0.clearCompareAInterruptRequest();
-    systemFlags.newAdcData = true;
+    systemFlags.boolFlags.newAdcData = true;
 }
 
 // SPI Interrupt
@@ -334,8 +334,8 @@ void Spi::spiCallbackInterrupt(uint8_t received)
     case SPI_WAVE_FORM_END:
         timer0.setClockSource(Timer0::ClockSource::PRESCALER_1024);
         timer0.setCounterValue(0);
-        systemFlags.newWaveFormData = false;
-        systemFlags.spiBusy = false;
+        systemFlags.boolFlags.newWaveFormData = false;
+        systemFlags.boolFlags.spiBusy = false;
         break;
 
     case SPI_ADC:
@@ -344,8 +344,8 @@ void Spi::spiCallbackInterrupt(uint8_t received)
         break;
 
     case SPI_ADC_END:
-        systemFlags.newAdcData = false;
-        systemFlags.spiBusy = false;
+        systemFlags.boolFlags.newAdcData = false;
+        systemFlags.boolFlags.spiBusy = false;
         break;
 
     default:
@@ -408,7 +408,7 @@ void usartReceptionCompleteCallback()
             systemFlags.timer1FreqHigh = buffer[5];
             systemFlags.timer1FreqLow = buffer[6];
 
-            systemFlags.newUsartData = true;
+            systemFlags.boolFlags.newUsartData = true;
             timer0.setClockSource(Timer0::ClockSource::DISABLED);
         }
         byteIndex = 0;

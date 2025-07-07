@@ -49,7 +49,7 @@ void ResiFlow::setupWidgets() {
     
     // Controles do Trigger
     triggerModeSwitch = new QCheckBox("Automático", this);
-    triggerModeSwitch->setCheckState(Qt::Checked);
+    triggerModeSwitch->setCheckState(Qt::Unchecked);
 
     triggerButton = new QPushButton("Trigger", this);
 }
