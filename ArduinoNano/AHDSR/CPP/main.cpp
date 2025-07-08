@@ -133,9 +133,14 @@ void checkPairing();
 // Change between EXTERNAL or INTERNAL Trigger
 void jackDetectorInput()
 {
-    if(bit_is_set(PIND, PD4)) {             // EXTERNAL
-        timer1.setClockSource(Timer1::ClockSource::DISABLED);
-        timer1.setOutputMode(Timer1::OutputMode::NORMAL, Timer1::OutputMode::NORMAL);
+    if (bit_is_set(PIND, PD4)) {             // EXTERNAL
+        timer1.setClockSource(
+                Timer1::ClockSource::DISABLED
+        );
+        timer1.setOutputMode(
+                Timer1::OutputMode::NORMAL, 
+                Timer1::OutputMode::NORMAL
+        );
         int1.activateInterrupt();
     } else {                                // INTERNAL
         setTrigger(systemFlags.triggerMode);
@@ -146,7 +151,7 @@ void jackDetectorInput()
 // Set Trigger Function
 void setTrigger(uint8_t triggerMode)
 {
-    if(bit_is_clear(PIND, PD4)) {
+    if (bit_is_clear(PIND, PD4)) {
         switch(triggerMode) {
         case TRIGGER_AUTO:
             setTriggerAuto();
@@ -164,22 +169,33 @@ void setTrigger(uint8_t triggerMode)
 // Configure Trigger in AUTO mode
 void setTriggerAuto()
 {
-    timer1.setOutputMode(Timer1::OutputMode::TOGGLE_ON_COMPARE, Timer1::OutputMode::NORMAL);
-    timer1.setClockSource(Timer1::ClockSource::PRESCALER_256);
+    timer1.setOutputMode(
+            Timer1::OutputMode::TOGGLE_ON_COMPARE,
+            Timer1::OutputMode::NORMAL
+    );
+    timer1.setClockSource(
+            Timer1::ClockSource::PRESCALER_256
+    );
     timer1.setCounterValue(0);
 }
 
 // Set Trigger PIN in HIGH
 void setTriggerManualOn()
 {
-    timer1.setOutputMode(Timer1::OutputMode::NORMAL, Timer1::OutputMode::NORMAL);
+    timer1.setOutputMode(
+            Timer1::OutputMode::NORMAL, 
+            Timer1::OutputMode::NORMAL
+    );
     setBit(PORTB, PB1);
 }
 
 // Set Trigger PIN in LOW
 void setTriggerManualOff()
 {
-    timer1.setOutputMode(Timer1::OutputMode::NORMAL, Timer1::OutputMode::NORMAL);
+    timer1.setOutputMode(
+            Timer1::OutputMode::NORMAL, 
+            Timer1::OutputMode::NORMAL
+    );
     clrBit(PORTB, PB1);
 }
 
@@ -207,10 +223,14 @@ void updateDigipots()
 
 void checkPairing()
 {
-    if(bit_is_set(PIND, PD2)) {
-        timer0.setClockSource(Timer0::ClockSource::DISABLED);
+    if (bit_is_set(PIND, PD2)) {
+        timer0.setClockSource(
+                Timer0::ClockSource::DISABLED
+        );
     } else {
-        timer0.setClockSource(Timer0::ClockSource::PRESCALER_1024);
+        timer0.setClockSource(
+                Timer0::ClockSource::PRESCALER_1024
+        );
         timer0.setCounterValue(0);
     }
 }
@@ -232,7 +252,9 @@ int main()
     // =========================================================================
 
     // Configure PCINT20, PD4
-    pcint2.enablePins(Pcint2::Pin::PIN_PCINT20);
+    pcint2.enablePins(
+            Pcint2::Pin::PIN_PCINT20
+    );
     pcint2.clearInterruptRequest();
     pcint2.activateInterrupt();
     clrBit(DDRD, PD4);
@@ -242,7 +264,9 @@ int main()
     // INT0 CONFIGURATION
     // =========================================================================
 
-    int0.init(Int0::SenseMode::BOTH_EDGES);
+    int0.init(
+            Int0::SenseMode::BOTH_EDGES
+    );
     int0.activateInterrupt();
     clrBit(DDRD, PD2);
     setBit(PORTD, PD2);
@@ -251,13 +275,19 @@ int main()
     // INT1 CONFIGURATION
     // =========================================================================
 
-    int1.init(Int1::SenseMode::BOTH_EDGES);
+    int1.init(
+            Int1::SenseMode::BOTH_EDGES
+    );
 
     // =========================================================================
     // SPI CONFIGURATION
     // =========================================================================
 
-    Spi::init(Spi::Mode::SLAVE, Spi::ClockRate::FOSC_64, Spi::DataMode::MODE_3);
+    Spi::init(
+            Spi::Mode::SLAVE, 
+            Spi::ClockRate::FOSC_64, 
+            Spi::DataMode::MODE_3
+    );
     Spi::activateSpiCallbackInterrupt();
 
     // =========================================================================
@@ -270,8 +300,12 @@ int main()
     // USART0 CONFIGURATION
     // =========================================================================
 
-    usart0.setFrameFormat(Usart0::FrameFormat::FRAME_FORMAT_8_N_1);
-    usart0.setBaudRate(Usart0::BaudRate::BAUD_RATE_9600);
+    usart0.setFrameFormat(
+            Usart0::FrameFormat::FRAME_FORMAT_8_N_1
+    );
+    usart0.setBaudRate(
+            Usart0::BaudRate::BAUD_RATE_9600
+    );
     usart0.init();
     usart0.enableReceiver();
     usart0.activateReceptionCompleteInterrupt();
@@ -285,8 +319,12 @@ int main()
             Adc::Reference::POWER_SUPPLY,
             Adc::Prescaler::PRESCALER_128
     );
-    adc.setDataAdjust(Adc::DataAdjust::LEFT);
-    adc.setChannel(Adc::Channel::CHANNEL_0);
+    adc.setDataAdjust(
+            Adc::DataAdjust::LEFT
+    );
+    adc.setChannel(
+            Adc::Channel::CHANNEL_0
+    );
     adc.clearInterruptRequest();
     adc.activateInterrupt();
     adc.enable();
@@ -296,16 +334,24 @@ int main()
     // =========================================================================
 
     timer0.setCompareAValue(155);
-    timer0.setMode(Timer0::Mode::CTC_OCRA);
+    timer0.setMode(
+            Timer0::Mode::CTC_OCRA
+    );
     timer0.clearCompareAInterruptRequest();
 
     // =========================================================================
     // TIMER1 CONFIGURATION
     // =========================================================================
 
-    timer1.init(Timer1::Mode::CTC_OCRA, Timer1::ClockSource::PRESCALER_256);
+    timer1.init(
+            Timer1::Mode::CTC_OCRA, 
+            Timer1::ClockSource::PRESCALER_256
+    );
     timer1.setCompareAValue(10416);
-    timer1.setOutputMode(Timer1::OutputMode::TOGGLE_ON_COMPARE, Timer1::OutputMode::NORMAL);
+    timer1.setOutputMode(
+            Timer1::OutputMode::TOGGLE_ON_COMPARE, 
+            Timer1::OutputMode::NORMAL
+    );
     setBit(DDRB, PB1);
 
     // =========================================================================
@@ -335,8 +381,8 @@ int main()
     // MAIN LOOP
     // =========================================================================
 
-    while(true) {
-        if(systemFlags.boolFlags.newUsartData && !systemFlags.boolFlags.spiBusy) {
+    while (true) {
+        if (systemFlags.boolFlags.newUsartData && !systemFlags.boolFlags.spiBusy) {
             systemFlags.boolFlags.newUsartData = false;
             timer1.setCompareAValue((systemFlags.timer1FreqHigh << 8) | systemFlags.timer1FreqLow);
             updateDigipots();
@@ -346,7 +392,7 @@ int main()
             systemFlags.spiState = SPI_WAVE_FORM;
             setBit(PORTC, PC1);
 
-        } else if(systemFlags.boolFlags.newAdcData && !systemFlags.boolFlags.spiBusy) {
+        } else if (systemFlags.boolFlags.newAdcData && !systemFlags.boolFlags.spiBusy) {
 
             SPDR = ADC_CMD_BYTE;
             systemFlags.boolFlags.spiBusy = true;
@@ -354,7 +400,7 @@ int main()
             setBit(PORTC, PC1);
         }
 
-        switch(systemFlags.spiState) {
+        switch (systemFlags.spiState) {
 
         case SEND_WAVE_FORM_BYTE:
             systemFlags.spiState = SPI_WAVE_FORM_END;
@@ -396,14 +442,16 @@ void Spi::spiCallbackInterrupt(uint8_t received)
 
     clrBit(PORTC, PC1);
 
-    switch(systemFlags.spiState) {
+    switch (systemFlags.spiState) {
     case SPI_WAVE_FORM:
         SPDR = 0;
         systemFlags.spiState = SEND_WAVE_FORM_BYTE;
         break;
 
     case SPI_WAVE_FORM_END:
-        timer0.setClockSource(Timer0::ClockSource::PRESCALER_1024);
+        timer0.setClockSource(
+                Timer0::ClockSource::PRESCALER_1024
+        );
         timer0.setCounterValue(0);
         systemFlags.boolFlags.newWaveFormData = false;
         systemFlags.boolFlags.spiBusy = false;
@@ -433,7 +481,7 @@ void int0InterruptCallback()
 // INT1 Interrupt
 void int1InterruptCallback()
 {
-    if(PIND & (1 << PD3)) {
+    if (PIND & (1 << PD3)) {
         // Activate trigger
         setBit(PORTB, PB1);
     } else {
@@ -457,7 +505,7 @@ void usartReceptionCompleteCallback()
 
     uint8_t data = UDR0;
 
-    if(byteIndex == 0) {
+    if (byteIndex == 0) {
         buffer[0] = data;
         expectedBytes = (buffer[0] == TRIGGER_SECTION) ? 2 : 7;
         byteIndex = 1;
@@ -466,7 +514,7 @@ void usartReceptionCompleteCallback()
 
     buffer[byteIndex++] = data;
 
-    if(byteIndex == expectedBytes) {
+    if (byteIndex == expectedBytes) {
         if(buffer[0] == TRIGGER_SECTION) {
             systemFlags.triggerMode = buffer[1];
             setTrigger(systemFlags.triggerMode);
@@ -479,7 +527,9 @@ void usartReceptionCompleteCallback()
             systemFlags.timer1FreqLow = buffer[6];
 
             systemFlags.boolFlags.newUsartData = true;
-            timer0.setClockSource(Timer0::ClockSource::DISABLED);
+            timer0.setClockSource(
+                    Timer0::ClockSource::DISABLED
+            );
         }
         byteIndex = 0;
     }
