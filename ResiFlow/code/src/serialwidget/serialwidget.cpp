@@ -119,6 +119,7 @@ void SerialWidget::sendAHDSRData(int rxHandler, int triggerCmd, int atk, int hol
     qDebug() << "Rele: " << rel;
     qDebug() << "BPM: " << bpm;
     qDebug() << "Freq: " << freq;
+    qDebug() << "Form: " << wfMode;
 
     QByteArray data;
     qint64 bytesEscritos;
@@ -180,26 +181,25 @@ void SerialWidget::sendAHDSRData(int rxHandler, int triggerCmd, int atk, int hol
     } else {
         emit statusMessage("Dados enviados com sucesso!");
 
-       if (rxHandler == 0) {
-            qDebug().noquote().nospace()
-                << "Enviado: "
-                << "RXHANDLER=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
-                << "TRIGON=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0')
-                << " (" << data.size() << " byte)";
-        } else {
-            qDebug().noquote().nospace()
-                << "Enviado: "
-                << "RXHANDLER=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
-                << "ATK=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0') << ", "
-                << "HOLD=0x" << QString::number((quint8)data[2], 16).rightJustified(2, '0') << ", "
-                << "SUS=0x" << QString::number((quint8)data[3], 16).rightJustified(2, '0') << ", "
-                << "DEC/REL=0x" << QString::number((quint8)data[4], 16).rightJustified(2, '0') << ", "
-                << "TRIG=0x" << QString::number((quint8)data[5], 16).rightJustified(2, '0') << ", "
-                << "TRIG_LSB=0x" << QString::number((quint8)data[6], 16).rightJustified(2, '0') << ", "
-                << "VCA=0x" << QString::number((quint8)data[6], 16).rightJustified(2, '0') << " ("
-                << data.size() << " bytes)";
-}
-
+       //if (rxHandler == 0) {
+       //     qDebug().noquote().nospace()
+       //         << "Enviado: "
+       //         << "RXHANDLER=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
+       //         << "TRIGON=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0')
+       //         << " (" << data.size() << " byte)";
+       //} else {
+       //    qDebug().noquote().nospace()
+       //        << "Enviado: "
+       //        << "RXHANDLER=0x" << QString::number((quint8)data[0], 16).rightJustified(2, '0') << ", "
+       //        << "ATK=0x" << QString::number((quint8)data[1], 16).rightJustified(2, '0') << ", "
+       //        << "HOLD=0x" << QString::number((quint8)data[2], 16).rightJustified(2, '0') << ", "
+       //        << "SUS=0x" << QString::number((quint8)data[3], 16).rightJustified(2, '0') << ", "
+       //        << "DEC/REL=0x" << QString::number((quint8)data[4], 16).rightJustified(2, '0') << ", "
+       //        << "TRIG=0x" << QString::number((quint8)data[5], 16).rightJustified(2, '0') << ", "
+       //        << "TRIG_LSB=0x" << QString::number((quint8)data[6], 16).rightJustified(2, '0') << ", "
+       //        << "VCA=0x" << QString::number((quint8)data[6], 16).rightJustified(2, '0') << " ("
+       //            << data.size() << " bytes)";
+       //}
     }
 }
 

@@ -42,9 +42,10 @@ void ResiFlow::setupWidgets() {
     freqLabel->setMinimumWidth(fm.horizontalAdvance("BPM: 180"));
 
     // Controles do Trigger
-
-    
     controlsWidget = new ControlsWidget;
+    
+    // Controles de Audio
+    freqWidget = new FrequencyWidget;
 }
 
 void ResiFlow::setupLayout() {
@@ -89,6 +90,7 @@ void ResiFlow::setupLayout() {
     // Adiciona widgets à direita
     layoutDireita->addWidget(conexaoGroup);
     layoutDireita->addWidget(presetWidget);
+    layoutDireita->addWidget(freqWidget);
     direita->setLayout(layoutDireita);
 
     // Adiciona os dois lados ao layout principal
@@ -170,8 +172,8 @@ AHDSRValues ResiFlow::getAHDSRValues(){
     int bpmIndex = freqSlider->value();
     int bpmVal = freqLabels[bpmIndex].toInt();
     
-    int freq = 500;
-    int wfForm = 0;
+    int freq = static_cast<int>(freqWidget->getFrequency());
+    int wfForm = freqWidget->getWaveformIndex();
 
     return {
         knobValues[0],  

@@ -2,23 +2,17 @@
 #define RESIFLOW_H
 
 #include <QMainWindow>
-#include <QWidget>
-#include <QPushButton>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QLabel>
 #include <QSlider>
 #include <QStatusBar>
-#include <QGroupBox>
 #include <QShortcut>
 #include <QKeyCombination>
-#include <QCheckBox>
 
 #include "chartwidget/chartwidget.h"
 #include "serialwidget/serialwidget.h"
 #include "presetwidget/presetwidget.h"
 #include "knobswidget/knobswidget.h"
 #include "controlsWidget/controlsWidget.h"
+#include "frequencywidget/frequencywidget.h"
 
 struct AHDSRValues {
     int attack;
@@ -63,12 +57,11 @@ private:
     QLabel * freqLabel;
     QStringList freqLabels;
 
-    // controle de modos
-    QCheckBox * triggerModeSwitch;
-    QPushButton * triggerButton;
-
     // painel de controles
     ControlsWidget * controlsWidget;
+
+    // widget de config de onda 
+    FrequencyWidget * freqWidget;
 
 
     void setupWidgets();

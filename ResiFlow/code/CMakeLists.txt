@@ -28,6 +28,10 @@ set(PROJECT_SOURCES
         src/knobswidget/knobswidget.h
         src/controlsWidget/controlsWidget.cpp
         src/controlsWidget/controlsWidget.h
+        src/customfreqslider/customfreqslider.cpp
+        src/customfreqslider/customfreqslider.h
+        src/frequencywidget/frequencywidget.cpp
+        src/frequencywidget/frequencywidget.h
         imgs.qrc
 )
 
