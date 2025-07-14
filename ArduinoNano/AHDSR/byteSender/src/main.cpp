@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cmath>
-#include <limits>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -16,43 +15,18 @@
 
 using namespace std;
 
-constexpr int F_CPU = 16000000;
-constexpr int ocr1aPreScaler = 256;
-constexpr byte RX_SECTION_TRIGGER = 0;
-constexpr byte RX_SECTION_AHDSR = 1;
+int main(int argc, char *argv[]) {
+    const int F_CPU = 16000000;
+    const int ocr1aPreScaler = 256;
+    int waveFormMode, waveFormFreq;
+    int rxHandlerSection;
+    int triggerMode;
+    int atkSteps, susSteps, holdSteps, decRelSteps, triggerBpm, vcaInputFrequency, ocr1aValue;
+    float triggerOscFreq;
 
 #ifdef _WIN32
-HANDLE hSerial;
-bool sendBytes(const byte* buffer, size_t size) {
-    DWORD bytesWritten;
-    return WriteFile(hSerial, buffer, size, &bytesWritten, NULL);
-}
-#else
-int serialPort;
-bool sendBytes(const byte* buffer, size_t size) {
-    return write(serialPort, buffer, size) >= 0;
-}
-#endif
+    HANDLE hSerial = CreateFile("COM2", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
-int getByteInput(const string& label) {
-    int val;
-    while (true) {
-        cout << label;
-        cin >> val;
-        if (cin.fail() || val < 0 || val > 255) {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cerr << "Valor inválido. Digite um número entre 0 e 255.\n";
-        } else {
-            break;
-        }
-    }
-    return val;
-}
-
-int main() {
-#ifdef _WIN32
-    hSerial = CreateFile("COM2", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
     if (hSerial == INVALID_HANDLE_VALUE) {
         cerr << "Erro ao abrir a porta COM\n";
         return 1;
@@ -60,6 +34,7 @@ int main() {
 
     DCB dcbSerialParams = {0};
     dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+
     if (!GetCommState(hSerial, &dcbSerialParams)) {
         cerr << "Erro ao obter o estado da porta\n";
         return 1;
@@ -69,19 +44,24 @@ int main() {
     dcbSerialParams.ByteSize = 8;
     dcbSerialParams.StopBits = ONESTOPBIT;
     dcbSerialParams.Parity   = NOPARITY;
+
     if (!SetCommState(hSerial, &dcbSerialParams)) {
         cerr << "Erro ao configurar a porta\n";
         return 1;
     }
+
 #else
     const char* device = "/dev/ttyUSB0";
-    serialPort = open(device, O_RDWR | O_NOCTTY);
+    int serialPort = open(device, O_RDWR | O_NOCTTY);
+
     if (serialPort < 0) {
         cerr << "Erro ao abrir a porta serial.\n";
         return 1;
     }
 
-    termios tty = {};
+    termios tty;
+    memset(&tty, 0, sizeof tty);
+
     if (tcgetattr(serialPort, &tty) != 0) {
         cerr << "Erro ao obter atributos da porta.\n";
         close(serialPort);
@@ -90,14 +70,17 @@ int main() {
 
     cfsetispeed(&tty, B9600);
     cfsetospeed(&tty, B9600);
+
     tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;
     tty.c_cflag |= CREAD | CLOCAL;
     tty.c_cflag &= ~PARENB;
     tty.c_cflag &= ~CSTOPB;
     tty.c_cflag &= ~CRTSCTS;
+
     tty.c_lflag = 0;
     tty.c_oflag = 0;
     tty.c_iflag = 0;
+
     tty.c_cc[VMIN] = 0;
     tty.c_cc[VTIME] = 10;
 
@@ -107,84 +90,130 @@ int main() {
         return 1;
     }
 #endif
+    while(true) {
+        cout << "Rxbyte (0 -> Enviar trigger bytes; 1 -> Enviar AHDSR btyes): ";
+        cin >> rxHandlerSection;
 
-    while (true) {
-        int section;
-        cout << "\nRxByte (0 -> Trigger; 1 -> AHDSR; -1 para sair): ";
-        cin >> section;
-
-        if (section == -1) break;
-        if (section != 0 && section != 1) {
-            cerr << "Opção inválida.\n";
-            continue;
-        }
-
-        if (section == RX_SECTION_TRIGGER) {
-            int triggerMode;
-            cout << "Trigger Mode (0 - Auto; 1 - Manual OFF; 3 - Manual ON): ";
+        if (rxHandlerSection == 0) {
+            cout << "Trigger Mode (0 - Auto; 1 - Manual e Desligado; 3 - Manual e Ligado): ";
             cin >> triggerMode;
-            if (triggerMode != 0 && triggerMode != 1 && triggerMode != 3) {
-                cerr << "Trigger mode inválido.\n";
-                continue;
-            }
+            byte rxHandleSectionByte = 0;
+            byte trigMode = (triggerMode);
+            byte triggerBytes[2] = {rxHandleSectionByte, trigMode};
 
-            byte triggerBytes[2] = {RX_SECTION_TRIGGER, static_cast<byte>(triggerMode)};
-            if (!sendBytes(triggerBytes, sizeof(triggerBytes))) {
-                cerr << "Erro ao enviar dados.\n";
-            } else {
-                cout << "Trigger enviado com sucesso.\n";
-            }
+            #ifdef _WIN32
+                DWORD bytesWritten;
+                if (!WriteFile(hSerial, triggerBytes, sizeof(triggerBytes), &bytesWritten, NULL)) {
+                    cerr << "Erro ao enviar dados." << endl;
+                } else {
+                    cout << "Enviado: "
+                        << "RxByte=0x" << hex << (int)rxHandleSectionByte
+                        << ", TrigMode=0x" << (int)triggerMode
+                        << " (" << dec << bytesWritten << " bytes)" << endl;
+                }
+            #else
+                ssize_t bytesWritten = write(serialPort, triggerBytes, sizeof(triggerBytes));
+                if (bytesWritten < 0) {
+                    cerr << "Erro ao enviar dados.\n";
+                } else {
+                    cout << "Enviado: "
+                        << "RxByte=0x" << hex << (int)rxHandleSectionByte
+                        << ", TrigMode=0x" << (int)triggerMode
+                        << " (" << dec << bytesWritten << " bytes)" << endl;
+                }
+            #endif
 
         } else {
-            int atkSteps     = getByteInput("Attack (0-255): ");
-            int holdSteps    = getByteInput("Hold (0-255): ");
-            int susSteps     = getByteInput("Sustain (0-255): ");
-            int decRelSteps  = getByteInput("Decay/Release (0-255): ");
-            int triggerBpm;
+            cout << "Attack - (0-255): ";                       cin >> atkSteps;
 
-            cout << "Trigger BPM (60, 100, 120, 150, 180): ";
-            cin >> triggerBpm;
+            cout << "Hold - (0-255): ";                         cin >> holdSteps;
 
-            float triggerOscFreq;
+            cout << "Sustain - (0-255): ";                      cin >> susSteps;
+
+            cout << "Decay/Release - (0-255): ";                cin >> decRelSteps;
+
+            cout << "WaveForm Mode: (1 - Sine, 2 - triangle) "; cin >> waveFormMode;
+            
+            cout << "WaveForm Freq: ";                          cin >> waveFormFreq;
+
+            cout << "Trigger BPM (60, 100, 120, 150, 180): ";   cin >> triggerBpm;    
+
             switch (triggerBpm) {
-                case 60:  triggerOscFreq = 1.0; break;
-                case 100: triggerOscFreq = 1.6; break;
-                case 120: triggerOscFreq = 2.0; break;
-                case 150: triggerOscFreq = 2.5; break;
-                case 180: triggerOscFreq = 3.0; break;
-                default:
-                    cerr << "BPM inválido. Usando 1Hz.\n";
-                    triggerOscFreq = 1.0;
+                case 60:
+                    triggerOscFreq = 1;
                     break;
-            }
+                case 100:
+                    triggerOscFreq = 1.6;
+                    break;
+                case 120:
+                    triggerOscFreq = 2;
+                    break;
+                case 150:
+                    triggerOscFreq = 2.5;
+                    break;
+                case 180:
+                    triggerOscFreq = 3;
+                    break;
+                default:
+                    triggerOscFreq = 1;
+                    break;
+                }
 
-            uint16_t ocr1aValue = static_cast<uint16_t>(
-                round((F_CPU / (2.0 * ocr1aPreScaler * triggerOscFreq)) - 1)
-            );
+            double temp;
+            temp = ( (double)(F_CPU) / (2 * ocr1aPreScaler * triggerOscFreq) ) - 1;
+            int ocr1aValue = static_cast<int>(round((F_CPU / (2.0 * ocr1aPreScaler * triggerOscFreq)) - 1));
+            
+            byte rxHandleSectionByte = 1;
+            byte Atk                 = (atkSteps);
+            byte Hold                = (holdSteps);
+            byte Sustain             = (susSteps);
+            byte DecRel              = (decRelSteps);
+            byte wfMode              = (waveFormMode);
+            byte wfFreq              = (waveFormFreq);
+            byte wfFreqHigh          = (waveFormFreq >> 8) & 0xFF;
+            byte wfFreqLow           = (waveFormFreq & 0xFF);
+            byte Trigger             = (ocr1aValue);
+            byte TriggerHigh         = (ocr1aValue >> 8) & 0xFF;
+            byte TriggerLow          = (ocr1aValue & 0xFF);
+            byte ahdsrBytes[10]      = {rxHandleSectionByte, Atk, Hold, Sustain, DecRel, wfMode, wfFreqHigh, wfFreqLow, TriggerHigh, TriggerLow};
 
-            byte ahdsrBytes[7] = {
-                RX_SECTION_AHDSR,
-                static_cast<byte>(atkSteps),
-                static_cast<byte>(holdSteps),
-                static_cast<byte>(susSteps),
-                static_cast<byte>(decRelSteps),
-                static_cast<byte>((ocr1aValue >> 8) & 0xFF), // High
-                static_cast<byte>(ocr1aValue & 0xFF)         // Low
-            };
-
-            if (!sendBytes(ahdsrBytes, sizeof(ahdsrBytes))) {
-                cerr << "Erro ao enviar AHDSR.\n";
-            } else {
-                cout << "AHDSR enviado com sucesso.\n";
-            }
-        }
-    }
-
-#ifdef _WIN32
-    CloseHandle(hSerial);
-#else
-    close(serialPort);
-#endif
+            #ifdef _WIN32
+                DWORD bytesWritten;
+                if (!WriteFile(hSerial, ahdsrBytes, sizeof(ahdsrBytes), &bytesWritten, NULL)) {
+                    cerr << "Erro ao enviar dados." << endl;
+                } else {
+                    cout << "Enviado: "
+                        << "RxByte=0x" << hex << (int)rxHandleSectionByte
+                        << ", ATK=0x" << (int)Atk
+                        << ", HOLD=0x" << (int)Hold
+                        << ", SUS=0x" << (int)Sustain
+                        << ", DEC/REL=0x" << (int)DecRel
+                        << ", WFMODE=0x" << (int)wfMode
+                        << ", WFFREQ=0x" << (int)wfFreq
+                        << ", TRIG_FREQ=0x" << (int)Trigger
+                        << " (" << dec << bytesWritten << " bytes)" << endl;
+                }
+            #else
+                ssize_t bytesWritten = write(serialPort, ahdsrBytes, sizeof(ahdsrBytes));
+                if (bytesWritten < 0) {
+                    cerr << "Erro ao enviar dados.\n";
+                } else {
+                    cout << "Enviado: "
+                        << "RxByte=0x" << hex << (int)rxHandleSectionByte
+                        << ", ATK=0x" << (int)Atk
+                        << ", HOLD=0x" << (int)Hold
+                        << ", SUS=0x" << (int)Sustain
+                        << ", DEC/REL=0x" << (int)DecRel
+                        << ", TRIG_FREQ=0x" << (int)Trigger
+                        << " (" << dec << bytesWritten << " bytes)" << endl;
+                }
+            #endif
+    }   }
+    #ifdef _WIN32
+        CloseHandle(hSerial);
+    #else
+        close(serialPort);
+    #endif
 
     return 0;
 }

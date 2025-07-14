@@ -182,6 +182,7 @@ AHDSRValues ResiFlow::getAHDSRValues(){
     int bpmVal = freqLabels[bpmIndex].toInt();
     
     int freq = 500;
+    int wfForm = 0;
 
     return {
         knobValues[0],  
@@ -189,7 +190,8 @@ AHDSRValues ResiFlow::getAHDSRValues(){
         knobValues[2],  
         knobValues[3],  
         bpmVal,
-        freq
+        freq,
+        wfForm
     };
 }
 
@@ -217,7 +219,8 @@ void ResiFlow::sendSerialData(int rxHandler, int triggerCmd){
             data.sustain,
             data.decayRelease,
             data.bpm,
-            data.freq
+            data.freq,
+            data.wfForm
     );
 }
 

@@ -27,7 +27,8 @@ public:
             int sus,
             int rel,
             int bpm,
-            int freq);
+            int freq,
+            int wfMode);
 
 private:
     QVBoxLayout * mainLayout;

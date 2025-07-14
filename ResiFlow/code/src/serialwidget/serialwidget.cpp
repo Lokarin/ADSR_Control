@@ -105,7 +105,7 @@ void SerialWidget::connectSerial() {
     }
 }
 
-void SerialWidget::sendAHDSRData(int rxHandler, int triggerCmd, int atk, int hold, int sus, int rel, int bpm, int freq) {
+void SerialWidget::sendAHDSRData(int rxHandler, int triggerCmd, int atk, int hold, int sus, int rel, int bpm, int freq, int wfMode) {
     if (!serial->isOpen()) {
         emit statusMessage("Erro: Porta serial não está conectada");
         return;
@@ -152,11 +152,9 @@ void SerialWidget::sendAHDSRData(int rxHandler, int triggerCmd, int atk, int hol
 
         constexpr double F_CPU = 16000000.0;        
         constexpr int ocr1aPreScaler = 256;
-        constexpr int ocr2aPreScaler = 256;
 
-        // calculando o valor dee ocr1 e 2
+        // calculando o valor dee ocr1 
         int ocr1aValue = static_cast<int>(round((F_CPU / (2.0 * ocr1aPreScaler * triggerOsqFreq)) - 1));
-        int ocr2aValue = static_cast<int>(round((F_CPU / (2.0 * ocr2aPreScaler * freq)) - 1));
 
         // adicionando os valores em forma de bits
         data.append(static_cast<char>(rxHandler));
@@ -165,10 +163,12 @@ void SerialWidget::sendAHDSRData(int rxHandler, int triggerCmd, int atk, int hol
         data.append(static_cast<char>(sus));
         data.append(static_cast<char>(rel));
 
+        data.append(static_cast<char>(wfMode));
+        data.append(static_cast<char>((freq >> 8) & 0xFF));
+        data.append(static_cast<char>(freq & 0xFF));
+
         data.append(static_cast<char>((ocr1aValue >> 8) & 0xFF));
         data.append(static_cast<char>(ocr1aValue & 0xFF));
-
-        //data.append(static_cast<char>(ocr2aValue));
 
         // enviando os valores
         bytesEscritos = serial->write(data);

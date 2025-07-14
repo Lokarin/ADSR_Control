@@ -27,6 +27,7 @@ struct AHDSRValues {
     int decayRelease;
     int bpm;
     int freq;
+    int wfForm;
 };
 
 class ResiFlow : public QMainWindow
