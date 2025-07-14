@@ -26,6 +26,8 @@ set(PROJECT_SOURCES
         src/presetwidget/presetwidget.h
         src/knobswidget/knobswidget.cpp
         src/knobswidget/knobswidget.h
+        src/controlsWidget/controlsWidget.cpp
+        src/controlsWidget/controlsWidget.h
         imgs.qrc
 )
 

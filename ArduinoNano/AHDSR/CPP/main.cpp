@@ -58,11 +58,15 @@
 //=============================================================================
 
 enum {
-    SPI_ADC,
-    SEND_ADC_BYTE,
+    LOAD_ADC_VALUE,
+    ADC_VALUE_LOADED,
     SPI_ADC_END,
-    SPI_WAVE_FORM,
-    SEND_WAVE_FORM_BYTE,
+    LOAD_WAVE_FORM_MODE,
+    WF_MODE_LOADED,
+    LOAD_WAVE_FORM_FREQ_HIGH,
+    WF_FREQ_HIGH_LOADED,
+    LOAD_WAVE_FORM_FREQ_LOW,
+    WF_FREQ_LOW_LOADED,
     SPI_WAVE_FORM_END
 } typedef SpiState;
 
@@ -78,15 +82,12 @@ typedef union {
         bool_t newWaveFormData  : 1;        // Bit 3
         uint8_t unused          : 4;        // Bits 4-7 (future flags)
     };
-    volatile uint8_t allFlags;              // Acess all bits as uint8_t
+    volatile uint8_t allFlags;              // Access all bits as uint8_t
 } BooleanFlags_t;
 
 typedef struct {
     volatile BooleanFlags_t boolFlags;      // Boolean flags
     volatile SpiState spiState;             // SPI machine state
-    volatile uint8_t triggerMode;           // Trigger mode
-    volatile uint8_t timer1FreqHigh;        // Byte alto da frequência Timer1
-    volatile uint8_t timer1FreqLow;         // Byte baixo da frequência Timer1
 } SystemFlags;
 
 // =============================================================================
@@ -100,19 +101,21 @@ typedef struct {
 //=============================================================================
 
 SystemFlags systemFlags = {
-    .boolFlags = {.allFlags = 0},          
-    .spiState = SPI_ADC,
-    .triggerMode = 1,
-    .timer1FreqHigh = 0,
-    .timer1FreqLow = 0
+    .boolFlags = {.allFlags = 0},
+    .spiState = SPI_ADC_END,
 };
 
-volatile uint16_t adcValue = 0;
-
-volatile uint8_t attackByte = 2;
-volatile uint8_t decayAndReleaseByte = 4;
-volatile uint8_t holdByte = 8;
-volatile uint8_t sustainByte = 16;
+volatile uint16_t adcValue;
+volatile uint8_t triggerMode = 1;
+volatile uint8_t attackByte;
+volatile uint8_t decayAndReleaseByte;
+volatile uint8_t holdByte;
+volatile uint8_t sustainByte;
+volatile uint8_t waveFormMode;
+volatile uint8_t waveFormFreqHigh;
+volatile uint8_t waveFormFreqLow;
+volatile uint8_t timer1FreqHigh;
+volatile uint8_t timer1FreqLow;
 
 //=============================================================================
 // FUNCTION PROTOTYPES
@@ -133,17 +136,17 @@ void checkPairing();
 // Change between EXTERNAL or INTERNAL Trigger
 void jackDetectorInput()
 {
-    if (bit_is_set(PIND, PD4)) {             // EXTERNAL
+    if(bit_is_set(PIND, PD4)) {              // EXTERNAL
         timer1.setClockSource(
                 Timer1::ClockSource::DISABLED
         );
         timer1.setOutputMode(
-                Timer1::OutputMode::NORMAL, 
+                Timer1::OutputMode::NORMAL,
                 Timer1::OutputMode::NORMAL
         );
         int1.activateInterrupt();
     } else {                                // INTERNAL
-        setTrigger(systemFlags.triggerMode);
+        setTrigger(triggerMode);
         int1.deactivateInterrupt();
     }
 }
@@ -151,7 +154,7 @@ void jackDetectorInput()
 // Set Trigger Function
 void setTrigger(uint8_t triggerMode)
 {
-    if (bit_is_clear(PIND, PD4)) {
+    if(bit_is_clear(PIND, PD4)) {
         switch(triggerMode) {
         case TRIGGER_AUTO:
             setTriggerAuto();
@@ -183,7 +186,7 @@ void setTriggerAuto()
 void setTriggerManualOn()
 {
     timer1.setOutputMode(
-            Timer1::OutputMode::NORMAL, 
+            Timer1::OutputMode::NORMAL,
             Timer1::OutputMode::NORMAL
     );
     setBit(PORTB, PB1);
@@ -193,7 +196,7 @@ void setTriggerManualOn()
 void setTriggerManualOff()
 {
     timer1.setOutputMode(
-            Timer1::OutputMode::NORMAL, 
+            Timer1::OutputMode::NORMAL,
             Timer1::OutputMode::NORMAL
     );
     clrBit(PORTB, PB1);
@@ -223,7 +226,7 @@ void updateDigipots()
 
 void checkPairing()
 {
-    if (bit_is_set(PIND, PD2)) {
+    if(bit_is_set(PIND, PD2)) {
         timer0.setClockSource(
                 Timer0::ClockSource::DISABLED
         );
@@ -246,7 +249,7 @@ int main()
     // =========================================================================
 
     // NONE
-    
+
     // =========================================================================
     // PCINT2 CONFIGURATION
     // =========================================================================
@@ -284,9 +287,9 @@ int main()
     // =========================================================================
 
     Spi::init(
-            Spi::Mode::SLAVE, 
-            Spi::ClockRate::FOSC_64, 
-            Spi::DataMode::MODE_3
+            Spi::Mode::SLAVE,
+            Spi::ClockRate::FOSC_64,
+            Spi::DataMode::MODE_2
     );
     Spi::activateSpiCallbackInterrupt();
 
@@ -319,9 +322,6 @@ int main()
             Adc::Reference::POWER_SUPPLY,
             Adc::Prescaler::PRESCALER_128
     );
-    adc.setDataAdjust(
-            Adc::DataAdjust::LEFT
-    );
     adc.setChannel(
             Adc::Channel::CHANNEL_0
     );
@@ -344,12 +344,12 @@ int main()
     // =========================================================================
 
     timer1.init(
-            Timer1::Mode::CTC_OCRA, 
+            Timer1::Mode::CTC_OCRA,
             Timer1::ClockSource::PRESCALER_256
     );
     timer1.setCompareAValue(10416);
     timer1.setOutputMode(
-            Timer1::OutputMode::TOGGLE_ON_COMPARE, 
+            Timer1::OutputMode::TOGGLE_ON_COMPARE,
             Timer1::OutputMode::NORMAL
     );
     setBit(DDRB, PB1);
@@ -381,33 +381,43 @@ int main()
     // MAIN LOOP
     // =========================================================================
 
-    while (true) {
-        if (systemFlags.boolFlags.newUsartData && !systemFlags.boolFlags.spiBusy) {
+    while(true) {
+        if(systemFlags.boolFlags.newUsartData && !systemFlags.boolFlags.spiBusy) {
             systemFlags.boolFlags.newUsartData = false;
-            timer1.setCompareAValue((systemFlags.timer1FreqHigh << 8) | systemFlags.timer1FreqLow);
+            timer1.setCompareAValue((timer1FreqHigh << 8) | timer1FreqLow);
             updateDigipots();
 
             SPDR = WAVE_FORM_CMD_BYTE;
             //systemFlags.boolFlags.spiBusy = true;
-            systemFlags.spiState = SPI_WAVE_FORM;
+            systemFlags.spiState = LOAD_WAVE_FORM_MODE;
             setBit(PORTC, PC1);
 
-        } else if (systemFlags.boolFlags.newAdcData && !systemFlags.boolFlags.spiBusy) {
+        } else if(systemFlags.boolFlags.newAdcData && !systemFlags.boolFlags.spiBusy) {
 
             SPDR = ADC_CMD_BYTE;
             systemFlags.boolFlags.spiBusy = true;
-            systemFlags.spiState = SPI_ADC;
+            systemFlags.spiState = LOAD_ADC_VALUE;
             setBit(PORTC, PC1);
         }
 
-        switch (systemFlags.spiState) {
+        switch(systemFlags.spiState) {
 
-        case SEND_WAVE_FORM_BYTE:
+        case WF_MODE_LOADED:
+            systemFlags.spiState = LOAD_WAVE_FORM_FREQ_HIGH;
+            setBit(PORTC, PC1);
+            break;
+
+        case WF_FREQ_HIGH_LOADED:
+            systemFlags.spiState = LOAD_WAVE_FORM_FREQ_LOW;
+            setBit(PORTC, PC1);
+            break;
+
+        case WF_FREQ_LOW_LOADED:
             systemFlags.spiState = SPI_WAVE_FORM_END;
             setBit(PORTC, PC1);
             break;
 
-        case SEND_ADC_BYTE:
+        case ADC_VALUE_LOADED:
             systemFlags.spiState = SPI_ADC_END;
             setBit(PORTC, PC1);
             break;
@@ -427,7 +437,7 @@ int main()
 // ADC Conversion Interrupt
 void adcConversionCompleteCallback(void)
 {
-    adcValue = ADCH;
+    adcValue = ADC;
     timer0.clearCompareAInterruptRequest();
     systemFlags.boolFlags.newAdcData = true;
 }
@@ -442,10 +452,20 @@ void Spi::spiCallbackInterrupt(uint8_t received)
 
     clrBit(PORTC, PC1);
 
-    switch (systemFlags.spiState) {
-    case SPI_WAVE_FORM:
-        SPDR = 0;
-        systemFlags.spiState = SEND_WAVE_FORM_BYTE;
+    switch(systemFlags.spiState) {
+    case LOAD_WAVE_FORM_MODE:
+        SPDR = waveFormMode;
+        systemFlags.spiState = WF_MODE_LOADED;
+        break;
+
+    case LOAD_WAVE_FORM_FREQ_HIGH:
+        SPDR = waveFormFreqHigh;
+        systemFlags.spiState = WF_FREQ_HIGH_LOADED;
+        break;
+
+    case LOAD_WAVE_FORM_FREQ_LOW:
+        SPDR = waveFormFreqLow;
+        systemFlags.spiState = WF_FREQ_LOW_LOADED;
         break;
 
     case SPI_WAVE_FORM_END:
@@ -457,9 +477,9 @@ void Spi::spiCallbackInterrupt(uint8_t received)
         systemFlags.boolFlags.spiBusy = false;
         break;
 
-    case SPI_ADC:
-        SPDR = adcValue;
-        systemFlags.spiState = SEND_ADC_BYTE;
+    case LOAD_ADC_VALUE:
+        systemFlags.spiState = ADC_VALUE_LOADED;
+        SPDR = adcValue >> 2;
         break;
 
     case SPI_ADC_END:
@@ -481,7 +501,7 @@ void int0InterruptCallback()
 // INT1 Interrupt
 void int1InterruptCallback()
 {
-    if (PIND & (1 << PD3)) {
+    if(PIND & (1 << PD3)) {
         // Activate trigger
         setBit(PORTB, PB1);
     } else {
@@ -500,31 +520,34 @@ void pcint2InterruptCallback()
 void usartReceptionCompleteCallback()
 {
     static uint8_t byteIndex = 0;
-    static uint8_t buffer[7];
+    static uint8_t buffer[10];
     static uint8_t expectedBytes = 0;
 
     uint8_t data = UDR0;
 
-    if (byteIndex == 0) {
+    if(byteIndex == 0) {
         buffer[0] = data;
-        expectedBytes = (buffer[0] == TRIGGER_SECTION) ? 2 : 7;
+        expectedBytes = (buffer[0] == TRIGGER_SECTION) ? 2 : 10;
         byteIndex = 1;
         return;
     }
 
     buffer[byteIndex++] = data;
 
-    if (byteIndex == expectedBytes) {
+    if(byteIndex == expectedBytes) {
         if(buffer[0] == TRIGGER_SECTION) {
-            systemFlags.triggerMode = buffer[1];
-            setTrigger(systemFlags.triggerMode);
+            triggerMode = buffer[1];
+            setTrigger(triggerMode);
         } else {
             attackByte = buffer[1];
             holdByte = buffer[2];
             sustainByte = buffer[3];
             decayAndReleaseByte = buffer[4];
-            systemFlags.timer1FreqHigh = buffer[5];
-            systemFlags.timer1FreqLow = buffer[6];
+            waveFormMode = buffer[5];
+            waveFormFreqHigh = buffer[6];
+            waveFormFreqLow = buffer[7];
+            timer1FreqHigh = buffer[8];
+            timer1FreqLow = buffer[9];
 
             systemFlags.boolFlags.newUsartData = true;
             timer0.setClockSource(

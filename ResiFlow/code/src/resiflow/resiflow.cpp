@@ -21,7 +21,7 @@ void ResiFlow::setupWidgets() {
     // Cria widget do grafico
     chart = new ChartWidget;
     chartGroup = new QGroupBox("", this);
-    chartGroup->setMinimumHeight(400);
+    chartGroup->setMinimumHeight(450);
     QHBoxLayout * chartLayout = new QHBoxLayout(chartGroup);
     chartLayout->addWidget(chart);
 
@@ -41,24 +41,17 @@ void ResiFlow::setupWidgets() {
     QFontMetrics fm(freqLabel->font());
     freqLabel->setMinimumWidth(fm.horizontalAdvance("BPM: 180"));
 
-    // Criar um botao de envio de dados
-    botaoSend = new QPushButton("⚙", this);
-    botaoSend->setFixedWidth(fm.horizontalAdvance("BPM: 180"));
-    botaoSend->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-    botaoSend->setMaximumHeight(300);
-    
     // Controles do Trigger
-    triggerModeSwitch = new QCheckBox("Automático", this);
-    triggerModeSwitch->setCheckState(Qt::Unchecked);
 
-    triggerButton = new QPushButton("Trigger", this);
+    
+    controlsWidget = new ControlsWidget;
 }
 
 void ResiFlow::setupLayout() {
     // Wid central
     QWidget * central = new QWidget(this);
     setCentralWidget(central);
-    central->setMinimumHeight(700);
+    central->setMinimumHeight(800);
 
     // Layout Principal Horizontal
     QHBoxLayout * layoutMain = new QHBoxLayout(central);
@@ -79,10 +72,9 @@ void ResiFlow::setupLayout() {
     // Layout knobs + freq
     QHBoxLayout * layoutKnobsFreq = new QHBoxLayout();
     layoutKnobsFreq->addWidget(knobsWidget);
-    layoutKnobsFreq->addWidget(botaoSend);
 
     // Adiciona widgets à esquerda
-    //layoutEsquerda->addWidget(botaoSend);
+    layoutEsquerda->addWidget(controlsWidget);
     layoutEsquerda->addWidget(chartGroup);
     //layoutEsquerda->addWidget(knobsWidget);
     layoutEsquerda->addLayout(layoutKnobsFreq);
@@ -94,15 +86,9 @@ void ResiFlow::setupLayout() {
     QVBoxLayout * layoutDireita = new QVBoxLayout(direita);
     layoutDireita->setAlignment(Qt::AlignTop);
 
-    // Layout trigger (check e botão)
-    QHBoxLayout *triggerModeLayout = new QHBoxLayout();
-    triggerModeLayout->addWidget(triggerModeSwitch);
-    triggerModeLayout->addWidget(triggerButton);
-
     // Adiciona widgets à direita
     layoutDireita->addWidget(conexaoGroup);
     layoutDireita->addWidget(presetWidget);
-    layoutDireita->addLayout(triggerModeLayout);
     direita->setLayout(layoutDireita);
 
     // Adiciona os dois lados ao layout principal
@@ -119,9 +105,9 @@ void ResiFlow::setupStatusBar() {
 void ResiFlow::setupConnects() {
     // Botao send atualiza os pontos reais e envia os valores
     // de potenciometros, BPM e Freq
-    connect(botaoSend, &QPushButton::clicked, this, [=]() {
-          chart->updatePontosReais(); 
-          sendSerialData(1, 0);
+    connect(controlsWidget, &ControlsWidget::sendButtonClicked, this, [=]() {
+        chart->updatePontosReais(); 
+        sendSerialData(1, 0);
     });
 
     // Slider de BPM atualizar label e chart simulado
@@ -148,25 +134,28 @@ void ResiFlow::setupConnects() {
 
     // Ao clicar o botao de trigger, colocar trigger em alto
     // e ao soltar, colocar em baixo
-    connect(triggerButton, &QPushButton::pressed, this, [=]() {
-            if (!triggerModeSwitch->isChecked()) {
-                sendSerialData(0, 3);
-            }
+    // Ao pressionar o botão de trigger (manual)
+    connect(controlsWidget, &ControlsWidget::trigButtonPressed, this, [=]() {
+        if (!controlsWidget->isAutoModeEnabled()) { // Você pode encapsular esse acesso (veja abaixo)
+            sendSerialData(0, 3);
+        }
     });
-    connect(triggerButton, &QPushButton::released, this, [=]() {
-            if (!triggerModeSwitch->isChecked()) {
+    
+    // Ao soltar o botão de trigger (manual)
+    connect(controlsWidget, &ControlsWidget::trigButtonReleased, this, [=]() {
+        if (!controlsWidget->isAutoModeEnabled()) {
             sendSerialData(0, 1);
-            }
+        }
     });
-
-    // Ao mudar o checkbox, enviar o status do modo do trigger
-    connect(triggerModeSwitch, &QCheckBox::toggled, this, [=](bool checked) {
-    if (checked) {
-        sendSerialData(0, 0);
-    } else {
-        sendSerialData(0, 1);
-    }
-});
+    
+    // Ao alternar o modo automático
+    connect(controlsWidget, &ControlsWidget::autoModeToggled, this, [=](bool checked) {
+        if (checked) {
+            sendSerialData(0, 0);
+        } else {
+            sendSerialData(0, 1);
+        }
+    });
 
     // Conects entre resiflow e presetWidget
     connect(this, &ResiFlow::parametersChanged, presetWidget, &PresetWidget::receiveParameters);

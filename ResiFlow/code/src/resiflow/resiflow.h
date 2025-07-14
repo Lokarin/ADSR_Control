@@ -15,10 +15,10 @@
 #include <QCheckBox>
 
 #include "chartwidget/chartwidget.h"
-#include "customknob/customknob.h"
 #include "serialwidget/serialwidget.h"
 #include "presetwidget/presetwidget.h"
 #include "knobswidget/knobswidget.h"
+#include "controlsWidget/controlsWidget.h"
 
 struct AHDSRValues {
     int attack;
@@ -66,6 +66,9 @@ private:
     // controle de modos
     QCheckBox * triggerModeSwitch;
     QPushButton * triggerButton;
+
+    // painel de controles
+    ControlsWidget * controlsWidget;
 
 
     void setupWidgets();
