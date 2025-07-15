@@ -20,6 +20,8 @@ public:
 
     double getFrequency() const;
     int getWaveformIndex() const;
+    void setFrequency(double freqHz);
+    void setWaveformIndex(int index);
 
 private:
     QVBoxLayout * mainLayout;

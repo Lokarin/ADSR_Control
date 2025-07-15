@@ -72,13 +72,12 @@ private:
     AHDSRValues getAHDSRValues();
     void updateChart();
     void sendSerialData(int rxHandler, int triggerCmd);
-    void getKnobValues();
 
 signals:
-    void parametersChanged(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
+    void parametersChanged(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq, int wfForm);
 
 private slots:
     void onParametersRequest();
-    void onLoadParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
+    void onLoadParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq, int wfForm);
 };
 #endif // RESIFLOW_H

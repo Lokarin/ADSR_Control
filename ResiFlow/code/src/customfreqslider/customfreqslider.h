@@ -14,13 +14,13 @@ public:
     ~CustomFreqSlider();
 
     double currentFrequency() const;
+    double sliderToFreq(int val) const;
+    int freqToSlider(double freq) const;
+    void setFrequency(double freqHz);
 
 private:
     QSlider * slider;
     QLabel * label;
-
-    double sliderToFreq(int val) const;
-    int freqToSlider(double freq) const;
 
     static constexpr int SLIDER_MIN = 0;
     static constexpr int SLIDER_MAX = 1000;

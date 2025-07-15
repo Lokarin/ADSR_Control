@@ -77,7 +77,7 @@ void PresetWidget::overwritePreset() {
         emit parametersRequest();
         QSettings settings("ResiFlow", "Presets");
 
-        for (int i = 0; i < 6; ++i) {
+        for (int i = 0; i < 7; ++i) {
             settings.setValue(QString("%1/param%2").arg(selectedPreset).arg(i + 1), presetParametersList[i]);
         }
     }
@@ -98,10 +98,11 @@ void PresetWidget::loadPreset() {
         int sustain = settings.value(QString("%1/param3").arg(selectedPreset)).toInt();
         int decayRelease = settings.value(QString("%1/param4").arg(selectedPreset)).toInt();
         int bpmVal = settings.value(QString("%1/param5").arg(selectedPreset)).toInt();
-        int freq = 500;
+        int freq = settings.value(QString("%1/param6").arg(selectedPreset)).toInt();
+        int wfForm = settings.value(QString("%1/param7").arg(selectedPreset)).toInt();
 
         // Emitir sinal para atualizar a interface
-        emit loadParametersToInterface(attack, hold, sustain, decayRelease, bpmVal, freq);
+        emit loadParametersToInterface(attack, hold, sustain, decayRelease, bpmVal, freq, wfForm);
     }
 
 }
@@ -117,7 +118,7 @@ void PresetWidget::savePreset() {
         newPresetNumber++;
     }
 
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 7; ++i) {
         settings.setValue(QString("preset%1/param%2").arg(newPresetNumber).arg(i + 1), presetParametersList[i]);
     }
 
@@ -152,13 +153,14 @@ void PresetWidget::deletePreset() {
 }
 
 // Recebe parâmetros de ResiFlow
-void PresetWidget::receiveParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq) {
+void PresetWidget::receiveParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq, int wfForm) {
     presetParametersList[0] = attack;
     presetParametersList[1] = hold;
     presetParametersList[2] = sustain;
     presetParametersList[3] = decayRelease;
     presetParametersList[4] = bpmVal;
     presetParametersList[5] = freq;
+    presetParametersList[6] = wfForm;
 }
 
 PresetWidget::~PresetWidget() = default;

@@ -39,4 +39,12 @@ int FrequencyWidget::getWaveformIndex() const {
     return waveSelector->currentIndex();
 }
 
+void FrequencyWidget::setFrequency(double freqHz) {
+    slider->setFrequency(freqHz);
+}
+
+void FrequencyWidget::setWaveformIndex(int index) {
+    waveSelector->setCurrentIndex(index);
+}
+
 FrequencyWidget::~FrequencyWidget() = default;

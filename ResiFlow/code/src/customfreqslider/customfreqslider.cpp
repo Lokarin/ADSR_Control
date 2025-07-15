@@ -50,4 +50,9 @@ double CustomFreqSlider::currentFrequency() const {
     return sliderToFreq(slider->value());
 }
 
+void CustomFreqSlider::setFrequency(double freqHz) {
+    int val = freqToSlider(freqHz);
+    slider->setValue(val); // Aqui você acessa o QSlider real
+}
+
 CustomFreqSlider::~CustomFreqSlider() = default;

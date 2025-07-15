@@ -17,6 +17,7 @@ QT_USE_NAMESPACE
     public:
         PresetWidget(QWidget *parent = nullptr);
         ~PresetWidget();
+
     private:
         QVBoxLayout * mainLayout;
         QHBoxLayout * layoutInterface;
@@ -26,7 +27,8 @@ QT_USE_NAMESPACE
         QPushButton * overwritePresetButton;
         QComboBox   * presetSelector;
         unsigned int  presetCounter = 0;
-        int           presetParametersList[6];
+        int           presetParametersList[7];
+
     private:
         void init();
         void updatePresetList(QString presetName);
@@ -34,11 +36,14 @@ QT_USE_NAMESPACE
         void deletePreset();
         void overwritePreset();
         void loadPreset();
+
     signals:
         void parametersRequest();
-        void loadParametersToInterface(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
+        void loadParametersToInterface(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq, int wfForm);
+
     public slots:
-        void receiveParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq);
+
+        void receiveParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq, int wfForm);
     };
 
 #endif // PRESETWIDGET_H

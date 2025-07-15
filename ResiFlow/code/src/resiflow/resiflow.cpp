@@ -225,11 +225,12 @@ void ResiFlow::onParametersRequest() {
             data.sustain,
             data.decayRelease,
             data.bpm,
-            data.freq
+            data.freq,
+            data.wfForm
     );
 }
 
-void ResiFlow::onLoadParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq) {
+void ResiFlow::onLoadParameters(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq, int wfForm) {
     // Atualiza valores dos knobs com o valor do preset selecionado
     knobsWidget->setKnobValues({attack, hold, sustain, decayRelease});
 
@@ -243,6 +244,9 @@ void ResiFlow::onLoadParameters(int attack, int hold, int sustain, int decayRele
     }
     freqSlider->setValue(freqIndex);
     freqLabel->setText(QString("BPM: %1").arg(bpmVal));
+
+    freqWidget->setFrequency(freq);
+    freqWidget->setWaveformIndex(wfForm);
 
     // Atualiza gráfico simulado com o preset selecionado
     updateChart();

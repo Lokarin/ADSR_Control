@@ -58,6 +58,7 @@
 //=============================================================================
 
 enum {
+    START,
     LOAD_ADC_VALUE,
     ADC_VALUE_LOADED,
     SPI_ADC_END,
@@ -79,7 +80,7 @@ typedef union {
         bool_t newUsartData     : 1;        // Bit 0
         bool_t spiBusy          : 1;        // Bit 1
         bool_t newAdcData       : 1;        // Bit 2
-        bool_t newWaveFormData  : 1;        // Bit 3
+        bool_t paired           : 1;        // Bit 3
         uint8_t unused          : 4;        // Bits 4-7 (future flags)
     };
     volatile uint8_t allFlags;              // Access all bits as uint8_t
@@ -226,15 +227,24 @@ void updateDigipots()
 
 void checkPairing()
 {
+    clrBit(PORTC, PC1);
+    adc.clearInterruptRequest();
+    systemFlags.boolFlags.newUsartData = false;
+    systemFlags.boolFlags.newAdcData = false;
+    systemFlags.boolFlags.spiBusy = false;
+    systemFlags.spiState = START;
+
     if(bit_is_set(PIND, PD2)) {
         timer0.setClockSource(
                 Timer0::ClockSource::DISABLED
         );
+        systemFlags.boolFlags.paired = false;
     } else {
         timer0.setClockSource(
                 Timer0::ClockSource::PRESCALER_1024
         );
         timer0.setCounterValue(0);
+        systemFlags.boolFlags.paired = true;
     }
 }
 
@@ -289,7 +299,7 @@ int main()
     Spi::init(
             Spi::Mode::SLAVE,
             Spi::ClockRate::FOSC_64,
-            Spi::DataMode::MODE_2
+            Spi::DataMode::MODE_3
     );
     Spi::activateSpiCallbackInterrupt();
 
@@ -383,14 +393,17 @@ int main()
 
     while(true) {
         if(systemFlags.boolFlags.newUsartData && !systemFlags.boolFlags.spiBusy) {
-            systemFlags.boolFlags.newUsartData = false;
             timer1.setCompareAValue((timer1FreqHigh << 8) | timer1FreqLow);
             updateDigipots();
 
             SPDR = WAVE_FORM_CMD_BYTE;
-            //systemFlags.boolFlags.spiBusy = true;
-            systemFlags.spiState = LOAD_WAVE_FORM_MODE;
-            setBit(PORTC, PC1);
+            systemFlags.boolFlags.newUsartData = false;
+
+            if(systemFlags.boolFlags.paired) {
+                systemFlags.boolFlags.spiBusy = true;
+                systemFlags.spiState = LOAD_WAVE_FORM_MODE;
+                setBit(PORTC, PC1);
+            }
 
         } else if(systemFlags.boolFlags.newAdcData && !systemFlags.boolFlags.spiBusy) {
 
@@ -401,7 +414,6 @@ int main()
         }
 
         switch(systemFlags.spiState) {
-
         case WF_MODE_LOADED:
             systemFlags.spiState = LOAD_WAVE_FORM_FREQ_HIGH;
             setBit(PORTC, PC1);
@@ -437,7 +449,7 @@ int main()
 // ADC Conversion Interrupt
 void adcConversionCompleteCallback(void)
 {
-    adcValue = ADC;
+    adcValue = ADC >> 2;
     timer0.clearCompareAInterruptRequest();
     systemFlags.boolFlags.newAdcData = true;
 }
@@ -473,13 +485,12 @@ void Spi::spiCallbackInterrupt(uint8_t received)
                 Timer0::ClockSource::PRESCALER_1024
         );
         timer0.setCounterValue(0);
-        systemFlags.boolFlags.newWaveFormData = false;
         systemFlags.boolFlags.spiBusy = false;
         break;
 
     case LOAD_ADC_VALUE:
         systemFlags.spiState = ADC_VALUE_LOADED;
-        SPDR = adcValue >> 2;
+        SPDR = adcValue;
         break;
 
     case SPI_ADC_END:
