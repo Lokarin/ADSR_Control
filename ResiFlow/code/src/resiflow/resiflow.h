@@ -2,10 +2,7 @@
 #define RESIFLOW_H
 
 #include <QMainWindow>
-#include <QSlider>
 #include <QStatusBar>
-#include <QShortcut>
-#include <QKeyCombination>
 
 #include "chartwidget/chartwidget.h"
 #include "serialwidget/serialwidget.h"
@@ -27,6 +24,10 @@ struct AHDSRValues {
 class ResiFlow : public QMainWindow
 {
     Q_OBJECT
+
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
 
 public:
     ResiFlow(QWidget *parent = nullptr);
@@ -68,10 +69,15 @@ private:
     void setupLayout();
     void setupStatusBar();
     void setupConnects();
+    void setupNoteMap();
 
     AHDSRValues getAHDSRValues();
     void updateChart();
     void sendSerialData(int rxHandler, int triggerCmd);
+
+    int formaDeOnda = 2;
+    QMap<int, QPair<int, int>> noteMap;
+    QSet<int> pressedKeys; // Ter certeza de unica tecla pressionada
 
 signals:
     void parametersChanged(int attack, int hold, int sustain, int decayRelease, int bpmVal, int freq, int wfForm);

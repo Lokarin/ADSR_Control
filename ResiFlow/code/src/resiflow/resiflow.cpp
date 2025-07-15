@@ -9,9 +9,14 @@ ResiFlow::ResiFlow(QWidget *parent)
     setupLayout();
     setupStatusBar();
     setupConnects();
+    setupNoteMap();
 }
 
 void ResiFlow::setupWidgets() {
+    // Foco
+    this->setFocusPolicy(Qt::StrongFocus);
+    this->setFocus();
+
     // Grupo de conexão
     conexaoGroup = new SerialWidget(this);
 
@@ -127,18 +132,11 @@ void ResiFlow::setupConnects() {
     // Sempre que os knobs se alteram, atualiza chart simulado
     connect(knobsWidget, &KnobsWidget::knobsChanged, this, &ResiFlow::updateChart);
 
-    // Teste de shortcut
-    QShortcut * shortcut = new QShortcut(QKeySequence("Ctrl+Return"), this);
-    connect(shortcut, &QShortcut::activated, this, [=]() {
-          chart->updatePontosReais(); 
-          sendSerialData(1, 0);
-    });
-
     // Ao clicar o botao de trigger, colocar trigger em alto
     // e ao soltar, colocar em baixo
     // Ao pressionar o botão de trigger (manual)
     connect(controlsWidget, &ControlsWidget::trigButtonPressed, this, [=]() {
-        if (!controlsWidget->isAutoModeEnabled()) { // Você pode encapsular esse acesso (veja abaixo)
+        if (!controlsWidget->isAutoModeEnabled()) { 
             sendSerialData(0, 3);
         }
     });
@@ -250,6 +248,83 @@ void ResiFlow::onLoadParameters(int attack, int hold, int sustain, int decayRele
 
     // Atualiza gráfico simulado com o preset selecionado
     updateChart();
+}
+
+void ResiFlow::setupNoteMap() {
+    noteMap.clear();
+
+    noteMap[Qt::Key_1] = {261, 2};     // C
+    noteMap[Qt::Key_2] = {277, 2};     // C#
+    noteMap[Qt::Key_3] = {293, 2};     // D
+    noteMap[Qt::Key_4] = {311, 2};     // D#
+    noteMap[Qt::Key_5] = {329, 2};     // E
+    noteMap[Qt::Key_6] = {349, 2};     // F
+    noteMap[Qt::Key_7] = {369, 2};     // F#
+    noteMap[Qt::Key_8] = {391, 2};     // G
+    noteMap[Qt::Key_9] = {415, 2};     // G#
+    noteMap[Qt::Key_0] = {440, 2};     // A
+    noteMap[Qt::Key_Minus] = {466, 2}; // A#
+    noteMap[Qt::Key_Equal] = {493, 2}; // B
+}
+
+void ResiFlow::keyPressEvent(QKeyEvent *event) {
+    if (event->isAutoRepeat()) return;
+
+    int key = event->key();
+
+    switch (key) {
+        case Qt::Key_Return:
+        case Qt::Key_Enter:
+            sendSerialData(1, 0);
+            chart->updatePontosReais();
+        return;
+
+        case Qt::Key_Q:
+            if (!controlsWidget->isAutoModeEnabled()) { 
+                sendSerialData(0, 3);
+            }
+        return;
+
+        case Qt::Key_F1:
+            formaDeOnda = (formaDeOnda + 1) % 3;
+            qDebug() << "Forma de onda atual:" << formaDeOnda;
+        return;
+    }
+
+    if (noteMap.contains(key) && !pressedKeys.contains(key)) {
+        pressedKeys.insert(key);
+
+        const auto& [freq, defaultWaveform] = noteMap[key];
+
+        AHDSRValues data = getAHDSRValues();
+        data.freq = freq;
+        data.wfForm = formaDeOnda;
+
+        conexaoGroup->sendAHDSRData(1, 0,
+            data.attack, data.hold, data.sustain,
+            data.decayRelease, data.bpm, data.freq, data.wfForm);
+
+        sendSerialData(0, 3);
+        chart->updatePontosReais();
+    }
+}
+
+void ResiFlow::keyReleaseEvent(QKeyEvent *event) {
+    if (event->isAutoRepeat()) return;
+
+    int key = event->key();
+
+    if (key == Qt::Key_Q) {
+        if (!controlsWidget->isAutoModeEnabled()) { 
+            sendSerialData(0, 1);  // Baixa o trigger
+        }
+        return;
+    }
+
+    if (noteMap.contains(key) && pressedKeys.contains(key)) {
+        pressedKeys.remove(key);
+        sendSerialData(0, 1);  // Também baixa o trigger
+    }
 }
 
 ResiFlow::~ResiFlow() = default;
