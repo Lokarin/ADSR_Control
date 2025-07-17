@@ -89,7 +89,7 @@ void SerialWidget::connectSerial() {
 
     // configuracoes da comunicacao serial
     serial->setPortName(portName);
-    serial->setBaudRate(QSerialPort::Baud9600);
+    serial->setBaudRate(QSerialPort::Baud19200);
     serial->setDataBits(QSerialPort::Data8);
     serial->setParity(QSerialPort::NoParity);
     serial->setStopBits(QSerialPort::OneStop);

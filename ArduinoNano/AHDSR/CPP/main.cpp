@@ -317,7 +317,7 @@ int main()
             Usart0::FrameFormat::FRAME_FORMAT_8_N_1
     );
     usart0.setBaudRate(
-            Usart0::BaudRate::BAUD_RATE_9600
+            Usart0::BaudRate::BAUD_RATE_19200
     );
     usart0.init();
     usart0.enableReceiver();
