@@ -38,6 +38,7 @@ volatile bool drawGraph = false;
 volatile byte graphValue = 0;
 volatile uint8_t currentCommand = 0;
 volatile uint8_t waveformBytesReceived = 0;
+volatile uint8_t muxLoop = 0;
 
 // Variáveis para armazenar dados do waveform
 volatile uint8_t waveformMode = 0;
@@ -49,13 +50,16 @@ volatile bool waveformDataReady = false;
 volatile uint16_t stateTimer = 0;
 volatile bool timerTick = false;
 
+// Variável para detectar mudança de estado do PCINT8
+volatile bool lastPCINT8State = false;
+
 // Constantes de timing (em ticks de ~1ms)
 #define SLAVE_READY_WAIT_TICKS  3    // ~3ms para slave se preparar
 #define FINALIZE_WAIT_TICKS     5    // ~5ms após finalizar
 
 // Função para verificar se slave tem dados disponíveis
 bool slaveHasData() {
-    return (PIND & (1 << PD3)) != 0;
+    return (PINC & (1 << PC0)) != 0;  // Mudança: agora lê PC0 (PCINT8)
 }
 
 // SPI initialization as master
@@ -72,16 +76,33 @@ void initSPI()
     SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR1) | (0 << SPR0) | (1 << SPIE) | (1 << CPOL) | (1 << CPHA);
 }
 
-// Pin data configuration - usando interrupt
+void initButton() {
+    // PD3 como entrada para detectar dados disponíveis
+    DDRD &= ~(1 << PD2);
+    PORTD |= (1 << PD2);  // com pull-up interno
+
+    // Configurar INT1 para detectar falling edge 
+    EICRA |= (1 << ISC01);   // falling edge
+    EIMSK |= (1 << INT0);   // Habilita INT1
+
+    // Mux pins
+    DDRD  |= (1 << PD7) | (1 << PD6) | (1 << PD5);
+    PORTD |= (1 << PD7) | (1 << PD6) | (1 << PD5);
+}
+
+// Pin data configuration - usando PCINT8 (PC0)
 void initPinData()
 {
-    // PD3 como entrada para detectar dados disponíveis
-    DDRD &= ~(1 << PD3);
-    PORTD &= ~(1 << PD3);  // Sem pull-up interno
+    // PC0 como entrada para detectar dados disponíveis
+    DDRC &= ~(1 << PC0);
+    PORTC &= ~(1 << PC0);  // Sem pull-up interno
 
-    // Configurar INT1 para detectar rising edge (LOW->HIGH)
-    EICRA |= (1 << ISC11) | (1 << ISC10);  // Rising edge
-    EIMSK |= (1 << INT1);   // Habilita INT1
+    // Configurar PCINT8 (PC0) para detectar mudanças
+    PCICR |= (1 << PCIE1);   // Habilita PCINT[14:8] (Port C)
+    PCMSK1 |= (1 << PCINT8); // Habilita PCINT8 (PC0)
+    
+    // Inicializa estado anterior
+    lastPCINT8State = (PINC & (1 << PC0)) != 0;
 }
 
 // Timer2 para base de tempo (substitui delays)
@@ -129,13 +150,37 @@ void requestNextByte(SPIState nextState)
     }
 }
 
-// ISR para mudanças no pino de dados disponíveis
-ISR(INT1_vect)
+ISR(INT0_vect)
 {
-    // Detecta apenas rising edge (dados disponíveis)
-    if (PIND & (1 << PD3)) {
+    PORTD |= (1 << PD7) | (1 << PD6) | (1 << PD5);
+
+    switch (muxLoop) {
+        case 0:
+            PORTD &= ~(1 << PD7);
+            muxLoop++;
+        break;
+        case 1:
+            PORTD &= ~(1 << PD6);
+            muxLoop++;
+        break;
+        case 2:
+            PORTD &= ~(1 << PD5);
+            muxLoop = 0;
+        break;
+    }
+}
+
+// ISR para PCINT8 - detecta mudanças no pino PC0
+ISR(PCINT1_vect)
+{
+    bool currentPCINT8State = (PINC & (1 << PC0)) != 0;
+    
+    // Detecta transição LOW->HIGH (rising edge)
+    if (!lastPCINT8State && currentPCINT8State) {
         dataReadyDetected = true;
     }
+    
+    lastPCINT8State = currentPCINT8State;
 }
 
 // ISR Timer2 - base de tempo para máquina de estados
@@ -279,6 +324,7 @@ void processWaveformData()
 void setup() {
     initSPI();
     initPinData();
+    initButton();
     initTimer2();
 
     // OLED
@@ -290,7 +336,7 @@ void setup() {
     display.setTextSize(2);
     display.setTextColor(SSD1306_WHITE);
     display.setCursor(0, 0);
-    display.println(F("DEBUG"));
+    display.println(F("AHDSR+VCA"));
 
     // Desenha uma mini senoide centralizada
     for (int x = 0; x < SCREEN_WIDTH; x++) {
