@@ -274,15 +274,21 @@ void processSPIStateMachine() {
 
 // =============================================================================
 // Function: processWaveformData
-// Description: Reseta dados de waveform após leitura.
+// Description: Processar os dados de configuração do áudio interno.
 // =============================================================================
 
 void processWaveformData() {
+  //TODO
     if (waveformDataReady) {
         waveformDataReady = false;
     }
 }
 
+
+// =============================================================================
+// Function: getWaveformName
+// Description: Associa os números ao tipo de áudio interno.
+// =============================================================================
 
 const char* getWaveformName(uint8_t mode) {
     switch (mode) {
