@@ -315,7 +315,7 @@ void setup() {
     }
 
     display.display();
-    delay(1500);
+    delay(5000);
 
     sei();  // Habilita interrupções globais
 }
