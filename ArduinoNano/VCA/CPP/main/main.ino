@@ -278,9 +278,28 @@ void processSPIStateMachine() {
 // Description: Processar os dados de configuração do áudio interno.
 // =============================================================================
 
+//TODO
 void processWaveformData() {
-  //TODO
     if (waveformDataReady) {
+        PORTD |= (1 << PD7) | (1 << PD6) | (1 << PD5);
+        switch (waveformMode) {
+          case 0:
+            //TODO: Setar áudio interno provindo do AD9833 e como Quadrada
+            PORTD &= ~(1 << PD6); muxLoop = 2;
+          break;
+          case 1:
+            //TODO: Setar áudio interno provindo do AD9833 e como Triangular
+            PORTD &= ~(1 << PD6); muxLoop = 2;
+          break;
+          case 2:
+            //TODO: Setar áudio interno provindo do AD9833 e como Senoidal
+            PORTD &= ~(1 << PD6); muxLoop = 2;
+          break;
+          case 3: // Setar áudio interno como ruido
+            PORTD &= ~(1 << PD7); muxLoop = 1;
+          break;
+        }
+
         waveformDataReady = false;
     }
 }
