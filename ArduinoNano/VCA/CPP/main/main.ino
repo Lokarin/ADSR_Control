@@ -16,7 +16,7 @@
 
 
 // =============================================================================
-// Dependencies
+// DEPENDENCIES
 // =============================================================================
 
 #include <Adafruit_GFX.h>
@@ -25,35 +25,23 @@
 
 
 // =============================================================================
-// OLED Display Configuration
+// CONSTANT DEFINITIONS
 // =============================================================================
 
 #define SCREEN_WIDTH  128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET    -1
 #define OLED_ADDRESS  0x3C
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
-
-// =============================================================================
-// Oscilloscope Parameters
-// =============================================================================
-
-const byte NUM_COLS = SCREEN_WIDTH;
-volatile byte yBuf[NUM_COLS] = {0};
-const byte hScale = 6;
-
-
-// =============================================================================
-// SPI Communication Protocol
-// =============================================================================
 
 #define ADC_COMMAND_BYTE        0b11000011
 #define WAVEFORM_COMMAND_BYTE   0b00111100
 
+#define SLAVE_READY_WAIT_TICKS  3
+#define FINALIZE_WAIT_TICKS     5
+
 
 // =============================================================================
-// SPI State Machine
+// ENUMERATIONS
 // =============================================================================
 
 enum SPIState {
@@ -70,8 +58,21 @@ enum SPIState {
 
 
 // =============================================================================
-// Global Variables
+// STATIC FUNCTION DECLARATIONS
 // =============================================================================
+
+// NONE
+
+
+// =============================================================================
+// GLOBAL VARIABLES
+// =============================================================================
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+const byte NUM_COLS = SCREEN_WIDTH;
+volatile byte yBuf[NUM_COLS] = {0};
+const byte hScale = 6;
 
 volatile uint8_t receivedByte = 0;
 volatile SPIState spiState = SPI_IDLE;
@@ -93,12 +94,20 @@ volatile bool timerTick = false;
 volatile bool lastPCINT8State = false;
 
 
-// =============================================================================
-// Timing Constants (in ~1ms ticks)
-// =============================================================================
+//=============================================================================
+// FUNCTION PROTOTYPES
+//=============================================================================
 
-#define SLAVE_READY_WAIT_TICKS  3
-#define FINALIZE_WAIT_TICKS     5
+bool slaveHasData();
+void initSPI();
+void initButton();
+void initPinData();
+void initTimer2();
+void startSPIProcess();
+void finalizeSPICommunication();
+void requestNextByte(SPIState nextState);
+void processSPIStateMachine();
+void processWaveformData();
 
 
 // =============================================================================
@@ -280,7 +289,7 @@ void processWaveformData() {
 
 
 // =============================================================================
-// Setup Function
+// SETUP FUNCION
 // =============================================================================
 
 void setup() {
@@ -313,7 +322,7 @@ void setup() {
 
 
 // =============================================================================
-// Loop Function
+// MAIN LOOP
 // =============================================================================
 
 void loop() {
@@ -351,9 +360,10 @@ void loop() {
 
 
 // =============================================================================
-// Interrupt Service Routines
+// INTERRUPT HANDLERS
 // =============================================================================
 
+// INT0 Interrupt
 ISR(INT0_vect) {
     PORTD |= (1 << PD7) | (1 << PD6) | (1 << PD5);
     switch (muxLoop) {
@@ -363,6 +373,7 @@ ISR(INT0_vect) {
     }
 }
 
+// PCINT1 Interrupt
 ISR(PCINT1_vect) {
     bool current = (PINC & (1 << PC0)) != 0;
     if (!lastPCINT8State && current) {
@@ -371,11 +382,13 @@ ISR(PCINT1_vect) {
     lastPCINT8State = current;
 }
 
+// Timer2 Compare A Interrupt
 ISR(TIMER2_COMPA_vect) {
     timerTick = true;
     stateTimer++;
 }
 
+// SPI Interrupt
 ISR(SPI_STC_vect) {
     receivedByte = SPDR;
 
