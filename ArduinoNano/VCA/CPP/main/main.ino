@@ -280,10 +280,17 @@ void processSPIStateMachine() {
 void processWaveformData() {
     if (waveformDataReady) {
         waveformDataReady = false;
-        waveformMode = 0;
-        waveformFreqHigh = 0;
-        waveformFreqLow = 0;
-        currentCommand = 0;
+    }
+}
+
+
+const char* getWaveformName(uint8_t mode) {
+    switch (mode) {
+        case 0: return "Quadrada";
+        case 1: return "Triangular";
+        case 2: return "Senoidal";
+        case 3: return "Ruido";
+        default: return "Unknown";
     }
 }
 
@@ -305,8 +312,8 @@ void setup() {
     // Splash screen
     display.setTextSize(2);
     display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
-    display.println(F("AHDSR+VCA"));
+    display.setCursor(17, 0);
+    display.println(F("POTENTIA"));
 
     for (int x = 0; x < SCREEN_WIDTH; x++) {
         float rad = (float)x / SCREEN_WIDTH * TWO_PI;
@@ -329,24 +336,43 @@ void loop() {
     processWaveformData();
 
     if (drawGraph) {
-        byte y = map(graphValue << 2, 0, 1023, SCREEN_HEIGHT - 1, 0);
-        static byte prevY = SCREEN_HEIGHT / 2;
-
+        // Mapear valor para a área azul (linhas 16 até 63)
+        byte y = map(graphValue << 2, 0, 1023, SCREEN_HEIGHT - 1, 16);
+        static byte prevY = 40; // Centro da área azul (entre 16 e 63)
+    
         for (byte k = 0; k < hScale; k++) {
             float t = (float)(k + 1) / hScale;
             byte yi = prevY + (int)((y - prevY) * t);
             memmove(yBuf, yBuf + 1, NUM_COLS - 1);
             yBuf[NUM_COLS - 1] = yi;
         }
-
+    
         prevY = y;
-
+    
         display.clearDisplay();
+    
+        // Texto na parte amarela (linhas 0 a 15)
+        display.setTextSize(1);  // Para caber duas linhas de informação
+        display.setTextColor(SSD1306_WHITE);
+        display.setCursor(0, 0);
+        
+        const char* waveformName = getWaveformName(waveformMode);
+        uint16_t freq = (waveformFreqHigh << 8) | waveformFreqLow;
+        
+        display.print("WF: ");
+        display.print(waveformName);
+        display.setCursor(0, 8); // Próxima linha
+        display.print("Freq: ");
+        display.print(freq);
+        display.print(" Hz");
+
+    
+        // Gráfico na parte azul (linhas 16 a 63)
         for (byte x = 0; x < NUM_COLS - 1; x++) {
             display.drawLine(x, yBuf[x], x + 1, yBuf[x + 1], SSD1306_WHITE);
         }
+    
         display.display();
-
         drawGraph = false;
     }
 
