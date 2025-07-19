@@ -108,6 +108,7 @@ void finalizeSPICommunication();
 void requestNextByte(SPIState nextState);
 void processSPIStateMachine();
 void processWaveformData();
+const char* getWaveformName(uint8_t mode);
 
 
 // =============================================================================
