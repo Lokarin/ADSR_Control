@@ -289,6 +289,22 @@ void ResiFlow::keyPressEvent(QKeyEvent *event) {
             formaDeOnda = (formaDeOnda + 1) % 3;
             qDebug() << "Forma de onda atual:" << formaDeOnda;
         return;
+
+        case Qt::Key_Z:
+            if (!controlsWidget->isAutoModeEnabled()) { 
+                sendSerialData(0, 3);
+            }
+        return;
+        
+        case Qt::Key_X:
+            if (!controlsWidget->isAutoModeEnabled()) { 
+                sendSerialData(0, 1);  // Baixa o trigger
+            }
+        return;
+
+        case Qt::Key_C:
+            conexaoGroup->sendAHDSRData(1, 0, 0, 0, 0, 90, 120, 20000, 3);
+            sendSerialData(0, 3);
     }
 
     if (noteMap.contains(key) && !pressedKeys.contains(key)) {
@@ -314,10 +330,12 @@ void ResiFlow::keyReleaseEvent(QKeyEvent *event) {
 
     int key = event->key();
 
-    if (key == Qt::Key_Q) {
-        if (!controlsWidget->isAutoModeEnabled()) { 
-            sendSerialData(0, 1);  // Baixa o trigger
-        }
+    switch (key) {
+        case Qt::Key_C:
+        case Qt::Key_Q:
+            if (!controlsWidget->isAutoModeEnabled()) { 
+                sendSerialData(0, 1);  // Baixa o trigger
+            }
         return;
     }
 
