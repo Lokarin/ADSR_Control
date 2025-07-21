@@ -227,6 +227,7 @@ void updateDigipots()
 
 void checkPairing()
 {
+    clrBit(DDRC, PC1);
     clrBit(PORTC, PC1);
     adc.clearInterruptRequest();
     systemFlags.boolFlags.newUsartData = false;
@@ -368,7 +369,7 @@ int main()
     // COMMUNICATION PIN CONFIGURATION
     // =========================================================================
 
-    setBit(DDRC, PC1);
+    clrBit(DDRC, PC1);
     clrBit(PORTC, PC1);
 
     // =========================================================================
@@ -402,7 +403,8 @@ int main()
             if(systemFlags.boolFlags.paired) {
                 systemFlags.boolFlags.spiBusy = true;
                 systemFlags.spiState = LOAD_WAVE_FORM_MODE;
-                setBit(PORTC, PC1);
+                setBit(DDRC, PC1);
+                clrBit(PORTC, PC1);
             }
 
         } else if(systemFlags.boolFlags.newAdcData && !systemFlags.boolFlags.spiBusy) {
@@ -410,28 +412,33 @@ int main()
             SPDR = ADC_CMD_BYTE;
             systemFlags.boolFlags.spiBusy = true;
             systemFlags.spiState = LOAD_ADC_VALUE;
-            setBit(PORTC, PC1);
+            setBit(DDRC, PC1);
+            clrBit(PORTC, PC1);
         }
 
         switch(systemFlags.spiState) {
         case WF_MODE_LOADED:
             systemFlags.spiState = LOAD_WAVE_FORM_FREQ_HIGH;
-            setBit(PORTC, PC1);
+            setBit(DDRC, PC1);
+            clrBit(PORTC, PC1);
             break;
 
         case WF_FREQ_HIGH_LOADED:
             systemFlags.spiState = LOAD_WAVE_FORM_FREQ_LOW;
-            setBit(PORTC, PC1);
+            setBit(DDRC, PC1);
+            clrBit(PORTC, PC1);
             break;
 
         case WF_FREQ_LOW_LOADED:
             systemFlags.spiState = SPI_WAVE_FORM_END;
-            setBit(PORTC, PC1);
+            setBit(DDRC, PC1);
+            clrBit(PORTC, PC1);
             break;
 
         case ADC_VALUE_LOADED:
             systemFlags.spiState = SPI_ADC_END;
-            setBit(PORTC, PC1);
+            setBit(DDRC, PC1);
+            clrBit(PORTC, PC1);
             break;
 
         default:
@@ -462,6 +469,7 @@ void Spi::spiCallbackInterrupt(uint8_t received)
     (void)status;
     (void)cleanSPDR;
 
+    clrBit(DDRC, PC1);
     clrBit(PORTC, PC1);
 
     switch(systemFlags.spiState) {

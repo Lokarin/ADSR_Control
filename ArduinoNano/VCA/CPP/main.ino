@@ -56,11 +56,6 @@ enum SPIState {
     SPI_FINALIZING
 };
 
-enum VCAMode {
-  SINGLE_MODE,
-  POTENTIA_MODE
-};
-
 
 // =============================================================================
 // STATIC FUNCTION DECLARATIONS
@@ -97,8 +92,7 @@ volatile uint16_t stateTimer = 0;
 volatile bool timerTick = false;
 
 volatile bool lastPCINT8State = false;
-
-volatile VCAMode pairing = SINGLE_MODE;
+volatile bool lastPCINT0State = false;
 
 
 //=============================================================================
@@ -124,7 +118,7 @@ const char* getWaveformName(uint8_t mode);
 // =============================================================================
 
 bool slaveHasData() {
-  return (PINC & (1 << PC0)) == 0;
+    return (PINC & (1 << PC0)) != 0;
 }
 
 
@@ -156,7 +150,7 @@ void initButton() {
     EIMSK |= (1 << INT0);
 
     DDRD  |= (1 << PD7) | (1 << PD6) | (1 << PD5);
-    PORTD |= (1 << PD7) | (1 << PD6);
+    PORTD |= (1 << PD7) | (1 << PD6) | (1 << PD5);
 }
 
 
@@ -167,12 +161,27 @@ void initButton() {
 
 void initPinData() {
     DDRC &= ~(1 << PC0);
-    PORTC |= (1 << PC0);
+    PORTC &= ~(1 << PC0);
 
     PCICR |= (1 << PCIE1);
     PCMSK1 |= (1 << PCINT8);
 
     lastPCINT8State = (PINC & (1 << PC0)) != 0;
+}
+
+// =============================================================================
+// Function: initExtDetect
+// Description: Configura o PB0 como entrada com interrupção por mudança.
+// =============================================================================
+
+void initExtDetect() {
+    DDRB &= ~(1 << PB0);
+    PORTB |= ~(1 << PB0); 
+
+    PCICR |= (1 << PCIE0);
+    PCMSK0 |= (1 << PCINT0);
+
+    lastPCINT0State = (PINB & (1 << PB0)) != 0;
 }
 
 
@@ -329,40 +338,15 @@ const char* getWaveformName(uint8_t mode) {
 
 
 // =============================================================================
-// Function: checkPairing
-// Description: Checa a conexão entre o VCA e o AHDSR.
-// =============================================================================
-
-VCAMode checkPairing() {
-    if ((PINC & (1 << PC0)) == 0) {
-        dataReadyDetected = true;
-        return POTENTIA_MODE;
-    } else {
-        return SINGLE_MODE;
-    }
-}
-
-void drawDownArrow(int x, int y) {
-    bool blinkOn = (millis() / 400) % 2;
-    if (blinkOn){
-      display.fillTriangle(x - 7, y, x + 7, y, x, y + 8, SSD1306_WHITE);
-    }
-}
-
-
-// =============================================================================
 // SETUP FUNCION
 // =============================================================================
 
 void setup() {
     initSPI();
     initPinData();
+    initExtDetect();
     initButton();
     initTimer2();
-
-    delay(300);
-
-    pairing = checkPairing();
 
     display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS);
     display.clearDisplay();
@@ -371,30 +355,17 @@ void setup() {
     // Splash screen
     display.setTextSize(2);
     display.setTextColor(SSD1306_WHITE);
-    if (pairing == POTENTIA_MODE) {
-      display.setCursor(5, 0);
-      display.println(F("-POTENTIA-"));
-      for (int x = 0; x < SCREEN_WIDTH; x++) {
-          float rad = (float)x / SCREEN_WIDTH * TWO_PI;
-          int16_t y = SCREEN_HEIGHT / 2 + (sin(rad) * 10);
-          display.drawPixel(x, y, SSD1306_WHITE);
-      }
-    } else {
-      display.setCursor(10, 0);
-      display.println(F("---VCA---"));
-      for (int i = 0; i < SCREEN_WIDTH; i += 4) {
-          // Usa seno para variar a altura entre 8 e 28
-          float angle = (float)i / SCREEN_WIDTH * 2 * PI * 3; // 3 ciclos de onda na largura da tela
-          int h = 28 + (int)(10 * sin(angle)); // altura varia entre 8 e 28 (18 ± 10)
-          display.drawFastVLine(i, SCREEN_HEIGHT - h, h, SSD1306_WHITE);
-      }
+    display.setCursor(17, 0);
+    display.println(F("POTENTIA"));
 
+    for (int x = 0; x < SCREEN_WIDTH; x++) {
+        float rad = (float)x / SCREEN_WIDTH * TWO_PI;
+        int16_t y = SCREEN_HEIGHT / 2 + (sin(rad) * 10);
+        display.drawPixel(x, y, SSD1306_WHITE);
     }
 
     display.display();
-    delay(3000);
-
-    pairing = checkPairing();
+    delay(5000);
 
     sei();  // Habilita interrupções globais
 }
@@ -406,56 +377,6 @@ void setup() {
 
 void loop() {
     processWaveformData();
-
-    if (pairing == SINGLE_MODE) {
-      display.clearDisplay();
-      display.setTextSize(2);
-      display.setTextColor(SSD1306_WHITE);
-
-      int y = 16;  // altura vertical da linha
-
-      // EXT alinhado à esquerda
-      display.setCursor(0, y);
-      display.print(F("EXT"));
-
-      // INT centralizado
-      int intWidth = 3 * 12;  // 3 letras x 12px
-      int xInt = (SCREEN_WIDTH - intWidth) / 2;  // centro da tela
-      display.setCursor(xInt, y);
-      display.print(F("INT"));
-
-      // NOI alinhado à direita
-      int noiWidth = 3 * 12;
-      int xNoi = SCREEN_WIDTH - noiWidth;  // tela vai de 0 a 127
-      display.setCursor(xNoi, y);
-      display.print(F("NOI"));
-
-      uint8_t dotX = 0;
-      switch (muxLoop) {
-          case 0: // EXT (ESQUERDA)
-            dotX = 36 / 2;  // início do EXT + metade
-            break;
-
-          case 1: // NOI (DIREITA)
-            dotX = 110;  // início da NOI + metade da palavra
-            break;
-
-          case 2: // INT (MEIO)
-            dotX = 64;  // início do INT + metade
-            break;
-
-          default:
-            return;  // valor inválido
-      }
-
-      drawDownArrow(dotX, 3);
-
-      display.setTextSize(1);
-      display.setCursor(11,55);
-      display.print("(Selecionar Audio)");
-
-      display.display();
-    }
 
     if (drawGraph) {
         // Mapear valor para a área azul (linhas 16 até 63)
@@ -521,10 +442,14 @@ ISR(INT0_vect) {
     }
 }
 
+// PCINT0 Interrupt
+ISR(PCINT0_vect) {
+}
+
 // PCINT1 Interrupt
 ISR(PCINT1_vect) {
     bool current = (PINC & (1 << PC0)) != 0;
-    if (lastPCINT8State && !current) {
+    if (!lastPCINT8State && current) {
         dataReadyDetected = true;
     }
     lastPCINT8State = current;
