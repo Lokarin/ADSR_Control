@@ -4,7 +4,7 @@
 // Author:          Gabriel Garcia; Henrique Amaral Onuki
 // Created:         2025-07-09
 // Modified:        2025-07-18
-// Version:         4.0
+// Version:         6.0
 // Description:     Comunicação SPI mestre com renderização gráfica no OLED.
 //                      Recebe comandos do escravo (ADC ou waveform) e exibe dados
 //                      graficamente em tempo real.
@@ -21,6 +21,7 @@
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <MD_AD9833.h>
 #include <Wire.h>
 
 
@@ -38,6 +39,8 @@
 
 #define SLAVE_READY_WAIT_TICKS  3
 #define FINALIZE_WAIT_TICKS     5
+
+#define FSYNC_PIN 9
 
 
 // =============================================================================
@@ -75,6 +78,8 @@ enum VCAMode {
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+MD_AD9833 gen(FSYNC_PIN);
+
 const byte NUM_COLS = SCREEN_WIDTH;
 volatile byte yBuf[NUM_COLS] = {0};
 const byte hScale = 6;
@@ -91,12 +96,14 @@ volatile uint8_t muxLoop = 0;
 volatile uint8_t waveformMode = 0;
 volatile uint8_t waveformFreqHigh = 0;
 volatile uint8_t waveformFreqLow = 0;
+uint16_t freq = (waveformFreqHigh << 8) | waveformFreqLow;
 volatile bool waveformDataReady = false;
 
 volatile uint16_t stateTimer = 0;
 volatile bool timerTick = false;
 
 volatile bool lastPCINT8State = false;
+volatile bool lastPCINT0State = false;
 
 volatile VCAMode pairing = SINGLE_MODE;
 
@@ -109,13 +116,17 @@ bool slaveHasData();
 void initSPI();
 void initButton();
 void initPinData();
+void initExtDetect();
 void initTimer2();
+void initWaveForm();
 void startSPIProcess();
 void finalizeSPICommunication();
 void requestNextByte(SPIState nextState);
 void processSPIStateMachine();
 void processWaveformData();
 const char* getWaveformName(uint8_t mode);
+VCAMode checkPairing();
+void drawDownArrow(uint8_t x, uint8_t y);
 
 
 // =============================================================================
@@ -175,6 +186,25 @@ void initPinData() {
     lastPCINT8State = (PINC & (1 << PC0)) != 0;
 }
 
+// =============================================================================
+// Function: initExtDetect
+// Description: Configura o PB0 como entrada com interrupção por mudança.
+// =============================================================================
+
+void initExtDetect() {
+    // Configure PB0 (D8) como entrada com pull-up
+    DDRB &= ~(1 << PB0);   // Entrada
+    PORTB |= (1 << PB0);   // Pull-up interno
+
+    // Ativa interrupção por mudança de pino no grupo PCIE0 (PORTB)
+    PCICR |= (1 << PCIE0);
+
+    // Habilita interrupção especificamente no pino PCINT0 (PB0)
+    PCMSK0 |= (1 << PCINT0);
+
+    // Leitura inicial do estado do pino (para futura detecção de borda)
+    lastPCINT0State = (PINB & (1 << PB0)) != 0;
+}
 
 // =============================================================================
 // Function: initTimer2
@@ -186,6 +216,19 @@ void initTimer2() {
     TCCR2B = (1 << CS22) | (1 << CS21) | (1 << CS20);
     OCR2A = 15;
     TIMSK2 |= (1 << OCIE2A);
+}
+
+// =============================================================================
+// Function: initWaveForm
+// Description: Inicializa o AD9833.
+// =============================================================================
+
+void initWaveForm() {
+  gen.begin();
+  gen.reset(true);
+  gen.setFrequency(MD_AD9833::CHAN_0, 1000);
+  gen.setMode(MD_AD9833::MODE_TRIANGLE);
+  gen.reset(false);
 }
 
 
@@ -285,29 +328,47 @@ void processSPIStateMachine() {
 // Description: Processar os dados de configuração do áudio interno.
 // =============================================================================
 
-//TODO
 void processWaveformData() {
     if (waveformDataReady) {
-        PORTD |= (1 << PD7) | (1 << PD6) | (1 << PD5);
-        switch (waveformMode) {
-          case 0:
-            //TODO: Setar áudio interno provindo do AD9833 e como Quadrada
-            PORTD &= ~(1 << PD6); muxLoop = 2;
-          break;
-          case 1:
-            //TODO: Setar áudio interno provindo do AD9833 e como Triangular
-            PORTD &= ~(1 << PD6); muxLoop = 2;
-          break;
-          case 2:
-            //TODO: Setar áudio interno provindo do AD9833 e como Senoidal
-            PORTD &= ~(1 << PD6); muxLoop = 2;
-          break;
-          case 3: // Setar áudio interno como ruido
-            PORTD &= ~(1 << PD7); muxLoop = 1;
-          break;
-        }
+      freq = (waveformFreqHigh << 8) | waveformFreqLow;
 
-        waveformDataReady = false;
+      // Entra no Modo 2      
+      SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR1)
+           | (1 << SPIE) | (1 << CPOL);
+
+      // Mux Desativado
+      PORTD |= (1 << PD7) | (1 << PD6) | (1 << PD5);
+
+      switch (waveformMode) {
+        case 0:
+          // Setar áudio interno provindo do AD9833 e como Quadrada
+          gen.setMode(MD_AD9833::MODE_SQUARE1);
+          PORTD &= ~(1 << PD6); muxLoop = 2;
+        break;
+        case 1:
+          // Setar áudio interno provindo do AD9833 e como Triangular
+          gen.setMode(MD_AD9833::MODE_TRIANGLE);
+          PORTD &= ~(1 << PD6); muxLoop = 2;
+        break;
+        case 2:
+          // Setar áudio interno provindo do AD9833 e como Senoidal
+          gen.setMode(MD_AD9833::MODE_SINE);
+          PORTD &= ~(1 << PD6); muxLoop = 2;
+        break;
+        case 3: // Setar áudio interno como ruido
+          PORTD &= ~(1 << PD7); muxLoop = 1;
+        break;
+      }
+
+      // Seta a frequencia
+      gen.setFrequency(MD_AD9833::CHAN_0, freq);
+
+      // Volta para Mode 3
+      SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR1)
+           | (1 << SPIE) | (1 << CPOL) | (1 << CPHA);
+
+      // Disponivel para nova wave data
+      waveformDataReady = false;
     }
 }
 
@@ -342,7 +403,12 @@ VCAMode checkPairing() {
     }
 }
 
-void drawDownArrow(int x, int y) {
+// =============================================================================
+// Function: drawDownArrow
+// Description: Desenha um triangulo que pisca.
+// =============================================================================
+
+void drawDownArrow(uint8_t x, uint8_t y) {
     bool blinkOn = (millis() / 400) % 2;
     if (blinkOn){
       display.fillTriangle(x - 7, y, x + 7, y, x, y + 8, SSD1306_WHITE);
@@ -355,8 +421,10 @@ void drawDownArrow(int x, int y) {
 // =============================================================================
 
 void setup() {
+    initWaveForm();
     initSPI();
     initPinData();
+    initExtDetect();
     initButton();
     initTimer2();
 
@@ -374,18 +442,40 @@ void setup() {
     if (pairing == POTENTIA_MODE) {
       display.setCursor(5, 0);
       display.println(F("-POTENTIA-"));
-      for (int x = 0; x < SCREEN_WIDTH; x++) {
-          float rad = (float)x / SCREEN_WIDTH * TWO_PI;
-          int16_t y = SCREEN_HEIGHT / 2 + (sin(rad) * 10);
-          display.drawPixel(x, y, SSD1306_WHITE);
-      }
+      //
+      // Define pontos principais da curva AHDSR simplificada
+      uint8_t x0 = 0;              // Início
+      uint8_t y0 = SCREEN_HEIGHT - 1;
+      
+      uint8_t x1 = 20;             // Fim do ataque
+      uint8_t y1 = 20;
+      
+      uint8_t x2 = 30;             // Fim do hold
+      uint8_t y2 = y1;
+      
+      uint8_t x3 = 45;             // Fim do decay
+      uint8_t y3 = 32;
+      
+      uint8_t x4 = 80;             // Fim do sustain
+      uint8_t y4 = y3;
+      
+      uint8_t x5 = 110;            // Fim do release
+      uint8_t y5 = SCREEN_HEIGHT - 1;
+      
+      // Desenha os segmentos
+      display.drawLine(x0, y0, x1, y1, SSD1306_WHITE); // Attack
+      display.drawLine(x1, y1, x2, y2, SSD1306_WHITE); // Hold
+      display.drawLine(x2, y2, x3, y3, SSD1306_WHITE); // Decay
+      display.drawLine(x3, y3, x4, y4, SSD1306_WHITE); // Sustain
+      display.drawLine(x4, y4, x5, y5, SSD1306_WHITE); // Release
+
     } else {
       display.setCursor(10, 0);
       display.println(F("---VCA---"));
-      for (int i = 0; i < SCREEN_WIDTH; i += 4) {
+      for (uint8_t i = 0; i < SCREEN_WIDTH; i += 4) {
           // Usa seno para variar a altura entre 8 e 28
           float angle = (float)i / SCREEN_WIDTH * 2 * PI * 3; // 3 ciclos de onda na largura da tela
-          int h = 28 + (int)(10 * sin(angle)); // altura varia entre 8 e 28 (18 ± 10)
+          uint8_t h = 28 + (int)(10 * sin(angle)); // altura varia entre 8 e 28 (18 ± 10)
           display.drawFastVLine(i, SCREEN_HEIGHT - h, h, SSD1306_WHITE);
       }
 
@@ -412,21 +502,21 @@ void loop() {
       display.setTextSize(2);
       display.setTextColor(SSD1306_WHITE);
 
-      int y = 16;  // altura vertical da linha
+      uint8_t y = 16;  // altura vertical da linha
 
       // EXT alinhado à esquerda
       display.setCursor(0, y);
       display.print(F("EXT"));
 
       // INT centralizado
-      int intWidth = 3 * 12;  // 3 letras x 12px
-      int xInt = (SCREEN_WIDTH - intWidth) / 2;  // centro da tela
+      uint8_t intWidth = 3 * 12;  // 3 letras x 12px
+      uint8_t xInt = (SCREEN_WIDTH - intWidth) / 2;  // centro da tela
       display.setCursor(xInt, y);
       display.print(F("INT"));
 
       // NOI alinhado à direita
-      int noiWidth = 3 * 12;
-      int xNoi = SCREEN_WIDTH - noiWidth;  // tela vai de 0 a 127
+      uint8_t noiWidth = 3 * 12;
+      uint8_t xNoi = SCREEN_WIDTH - noiWidth;  // tela vai de 0 a 127
       display.setCursor(xNoi, y);
       display.print(F("NOI"));
 
@@ -479,7 +569,7 @@ void loop() {
         display.setCursor(0, 0);
         
         const char* waveformName = getWaveformName(waveformMode);
-        uint16_t freq = (waveformFreqHigh << 8) | waveformFreqLow;
+        freq = (waveformFreqHigh << 8) | waveformFreqLow;
         
         display.print("WF: ");
         display.print(waveformName);
@@ -487,7 +577,6 @@ void loop() {
         display.print("Freq: ");
         display.print(freq);
         display.print(" Hz");
-
     
         // Gráfico na parte azul (linhas 16 a 63)
         for (byte x = 0; x < NUM_COLS - 1; x++) {
@@ -519,6 +608,16 @@ ISR(INT0_vect) {
         case 1: PORTD &= ~(1 << PD6); muxLoop++; break;
         case 2: PORTD &= ~(1 << PD5); muxLoop = 0; break;
     }
+}
+
+// PCINT0 Interrupt
+ISR(PCINT0_vect) {
+    bool current = (PINB & (1 << PB0)) != 0;
+    if (!lastPCINT0State && current) {
+      PORTD |= (1 << PD7) | (1 << PD6) | (1 << PD5);
+      PORTD &= ~(1 << PD5); muxLoop = 0;
+    }
+    lastPCINT0State = current;
 }
 
 // PCINT1 Interrupt
