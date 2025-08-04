@@ -129,27 +129,7 @@ void SerialWidget::sendAHDSRData(int rxHandler, int triggerCmd, int atk, int hol
         bytesEscritos = serial->write(data);
     } else {
         // bpm -> Hz
-        float triggerOsqFreq;
-        switch (bpm) {
-            case 60:
-                triggerOsqFreq = 1;
-                break;
-            case 100:
-                triggerOsqFreq = 1.6;
-                break;
-            case 120:
-                triggerOsqFreq = 2;
-                break;
-            case 150:
-                triggerOsqFreq = 2.5;
-                break;
-            case 180:
-                triggerOsqFreq = 3;
-                break;
-            default:
-                triggerOsqFreq = 1;
-                break;
-        }
+        float triggerOsqFreq = bpm / 60.0f;
 
         constexpr double F_CPU = 16000000.0;        
         constexpr int ocr1aPreScaler = 256;

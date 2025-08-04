@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QStatusBar>
+#include <QLineEdit>
 
 #include "chartwidget/chartwidget.h"
 #include "serialwidget/serialwidget.h"
@@ -54,6 +55,8 @@ private:
     KnobsWidget * knobsWidget;
 
     // slider para frequencia
+    QHBoxLayout * bpmLayout;
+    QLineEdit * bpmLineEdit;
     QSlider * freqSlider;
     QLabel * freqLabel;
     QStringList freqLabels;

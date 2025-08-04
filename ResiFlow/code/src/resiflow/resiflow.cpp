@@ -42,9 +42,20 @@ void ResiFlow::setupWidgets() {
     freqSlider->setTickPosition(QSlider::TicksBothSides);
     freqSlider->setSliderPosition(2);
 
-    freqLabel = new QLabel("BPM: 120", this);
-    QFontMetrics fm(freqLabel->font());
-    freqLabel->setMinimumWidth(fm.horizontalAdvance("BPM: 180"));
+    bpmLayout = new QHBoxLayout();
+    QLabel* bpmTextLabel = new QLabel("BPM:", this);
+    bpmLineEdit = new QLineEdit(freqLabels[2], this);
+    bpmLineEdit->setValidator(new QIntValidator(30, 300, bpmLineEdit));  // faixa opcional
+    QFontMetrics fm(bpmLineEdit->font());
+    int width = fm.horizontalAdvance("888") + 20;
+    bpmLineEdit->setFixedWidth(width);
+    bpmLayout->addWidget(bpmTextLabel);
+    bpmLayout->addWidget(bpmLineEdit);
+    bpmLineEdit->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+
+    //freqLabel = new QLabel("BPM: 120", this);
+    //QFontMetrics fm(freqLabel->font());
+    //freqLabel->setMinimumWidth(fm.horizontalAdvance("BPM: 180"));
 
     // Controles do Trigger
     controlsWidget = new ControlsWidget;
@@ -70,7 +81,7 @@ void ResiFlow::setupLayout() {
 
     // Freq picker (label + slider)
     QVBoxLayout * freqPicker = new QVBoxLayout();
-    freqPicker->addWidget(freqLabel, 0, Qt::AlignHCenter);
+    freqPicker->addLayout(bpmLayout, 0);
     freqPicker->addWidget(freqSlider, 0, Qt::AlignHCenter);
     // Adiciona freqPicker ao layout do gráfico
     static_cast<QHBoxLayout*>(chartGroup->layout())->addLayout(freqPicker);
@@ -118,10 +129,15 @@ void ResiFlow::setupConnects() {
     });
 
     // Slider de BPM atualizar label e chart simulado
-    connect(freqSlider, &QSlider::valueChanged, this, [=]() {
+    connect(freqSlider, &QSlider::valueChanged, this, [=](int value){
            int freqIndex = freqSlider->value();
-           freqLabel->setText(QString("BPM: %1").arg(freqLabels[freqIndex]));
+           //freqLabel->setText(QString("BPM: %1").arg(freqLabels[freqIndex]));
+           bpmLineEdit->setText(freqLabels[value]);
            updateChart();
+    });
+
+    connect(bpmLineEdit, &QLineEdit::textChanged, this, [=](const QString& text){
+        updateChart();
     });
 
     // Connect para statusbar mostrar mensagens
@@ -167,8 +183,7 @@ void ResiFlow::setupConnects() {
 AHDSRValues ResiFlow::getAHDSRValues(){
     QVector<int> knobValues = knobsWidget->getKnobValues();
     
-    int bpmIndex = freqSlider->value();
-    int bpmVal = freqLabels[bpmIndex].toInt();
+    int bpmVal = bpmLineEdit->text().isEmpty() ? 120 : bpmLineEdit->text().toInt();
     
     int freq = static_cast<int>(freqWidget->getFrequency());
     int wfForm = freqWidget->getWaveformIndex();
